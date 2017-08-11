@@ -668,7 +668,7 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
     NSString *documentsDirectory = [paths firstObject];
 
     NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSString *fullPath = [[documentsDirectory stringByAppendingPathComponent:[[NSUUID UUID] UUIDString]] stringByAppendingPathExtension:@"jpg"];
+    NSString *fullPath = [[documentsDirectory stringByAppendingPathComponent:[[NSUUID UUID] UUIDString]] stringByAppendingString:@"temp/" stringByAppendingPathExtension:@"jpg"];
 
     [fileManager createFileAtPath:fullPath contents:imageData attributes:nil];
     responseString = fullPath;
