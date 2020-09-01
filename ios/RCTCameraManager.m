@@ -930,25 +930,38 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
 
         //get all the metadata in the image
         NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
-        //NSMutableDictionary *imageMetadata = [photo.metadata mutableCopy];
+
         if (imageMetadata) {
-            // Resize to HDR working resolution
-            NSDictionary *options = @{
-                @"kCGImageSourceCreateThumbnailFromImageAlways": @YES,
-                @"kCGImageSourceThumbnailMaxPixelSize": @2108
-            };
+
             // create cgimage
-            CGImageRef rotatedCGImage = CGImageSourceCreateThumbnailAtIndex(source, 0, (CFDictionaryRef)options);
+            CGImageRef rotatedCGImage = photo.CGImageRepresentation;
+                
+            float width = CGImageGetWidth(rotatedCGImage);
+            float height = CGImageGetHeight(rotatedCGImage);
+            float scale = 2108 / MAX(width, height);
+            float newWidth = roundf(width * scale);
+            float newHeight = roundf(height * scale);
+            
+            CGContextRef context = CGBitmapContextCreate(nil, newWidth, newHeight, CGImageGetBitsPerComponent(rotatedCGImage), CGImageGetBytesPerRow(rotatedCGImage), CGImageGetColorSpace(rotatedCGImage), CGImageGetBitmapInfo(rotatedCGImage));
+            CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
+            
+            CGRect rect = CGRectMake(0, 0, newWidth, newHeight);
+                
+            CGContextDrawImage(context, rect, rotatedCGImage);
+                
+            CGImageRef resizedCGImage = CGBitmapContextCreateImage(context);
+                
+            CGContextRelease(context);
 
             // Erase stupid TIFF stuff
             [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
             // Create destination thing
-            NSMutableData *rotatedImageData = [NSMutableData data];
-            CGImageDestinationRef destination = CGImageDestinationCreateWithData((CFMutableDataRef)rotatedImageData, CGImageSourceGetType(source), 1, NULL);
+            NSMutableData *resizedImageData = [NSMutableData data];
+            CGImageDestinationRef destination = CGImageDestinationCreateWithData((CFMutableDataRef)resizedCGImage, CGImageSourceGetType(source), 1, NULL);
             CFRelease(source);
             // add the image to the destination, reattaching metadata
-            CGImageDestinationAddImage(destination, rotatedCGImage, (CFDictionaryRef) imageMetadata);
+            CGImageDestinationAddImage(destination, resizedCGImage, (CFDictionaryRef) imageMetadata);
             // And write
             CGImageDestinationFinalize(destination);
             CFRelease(destination);
@@ -962,7 +975,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
 
             NSString *fullPath = [[documentsDirectory stringByAppendingPathComponent:[[NSString stringWithFormat:@"%ld_9", photo.photoCount] stringByAppendingString:[[NSUUID UUID] UUIDString]]] stringByAppendingPathExtension:@"jpg"];
 
-            [fileManager createFileAtPath:fullPath contents:rotatedImageData attributes:nil];
+            [fileManager createFileAtPath:fullPath contents:resizedImageData attributes:nil];
             [self.sources insertObject:fullPath atIndex:index];
             
             NSLog(@"Path %@", fullPath);
@@ -975,7 +988,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
                 }
             }
             
-            CGImageRelease(rotatedCGImage);
+            CGImageRelease(resizedCGImage);
         }
 
         return;
@@ -1004,7 +1017,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
             @"kCGImageSourceThumbnailMaxPixelSize": @2108
         };
         // create cgimage
-        CGImageRef rotatedCGImage = CGImageSourceCreateThumbnailAtIndex(source, 0, (CFDictionaryRef)options);
+CGImageRef rotatedCGImage = CGImageSourceCreateThumbnailAtIndex(source, 0, (CFDictionaryRef)options);
 
         // Erase stupid TIFF stuff
         [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
