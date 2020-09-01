@@ -1016,14 +1016,9 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
         
         //get all the metadata in the image
         NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
-
-        // Resize to HDR working resolution
-        NSDictionary *options = @{
-            @"kCGImageSourceCreateThumbnailFromImageAlways": @YES,
-            @"kCGImageSourceThumbnailMaxPixelSize": @2108
-        };
+        
         // create cgimage
-        CGImageRef rotatedCGImage = CGImageSourceCreateImageAtIndex(source, 0, (CFDictionaryRef)options);
+        CGImageRef rotatedCGImage = CGImageSourceCreateImageAtIndex(source, 0, nil);
         // resize cgimage
         CGImageRef resizedCGImage = [self resizeImage:rotatedCGImage maxSize:2108];
         
