@@ -958,7 +958,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
 
             // Create destination thing
             NSMutableData *resizedImageData = [NSMutableData data];
-            CGImageDestinationRef destination = CGImageDestinationCreateWithData((CFMutableDataRef)resizedCGImage, CGImageSourceGetType(source), 1, NULL);
+            CGImageDestinationRef destination = CGImageDestinationCreateWithData((CFMutableDataRef)resizedCGImageData, CGImageSourceGetType(source), 1, NULL);
             CFRelease(source);
             // add the image to the destination, reattaching metadata
             CGImageDestinationAddImage(destination, resizedCGImage, (CFDictionaryRef) imageMetadata);
@@ -1017,7 +1017,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
             @"kCGImageSourceThumbnailMaxPixelSize": @2108
         };
         // create cgimage
-CGImageRef rotatedCGImage = CGImageSourceCreateThumbnailAtIndex(source, 0, (CFDictionaryRef)options);
+        CGImageRef rotatedCGImage = CGImageSourceCreateThumbnailAtIndex(source, 0, (CFDictionaryRef)options);
 
         // Erase stupid TIFF stuff
         [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
