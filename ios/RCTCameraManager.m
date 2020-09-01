@@ -958,7 +958,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
 
             // Create destination thing
             NSMutableData *resizedImageData = [NSMutableData data];
-            CGImageDestinationRef destination = CGImageDestinationCreateWithData((CFMutableDataRef)resizedCGImageData, CGImageSourceGetType(source), 1, NULL);
+            CGImageDestinationRef destination = CGImageDestinationCreateWithData((CFMutableDataRef)resizedImageData, CGImageSourceGetType(source), 1, NULL);
             CFRelease(source);
             // add the image to the destination, reattaching metadata
             CGImageDestinationAddImage(destination, resizedCGImage, (CFDictionaryRef) imageMetadata);
