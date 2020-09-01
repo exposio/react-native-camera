@@ -964,14 +964,18 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
 
             [fileManager createFileAtPath:fullPath contents:rotatedImageData attributes:nil];
             [self.sources insertObject:fullPath atIndex:index];
+            
             NSLog(@"Path %@", fullPath);
             NSLog(@"NB captures: %lu", (unsigned long)self.sources.count);
+            
             if (self.sources.count == self.exposures.count) {
                 if (self.captureResolve) {
                     self.captureResolve(self.sources);
                     self.captureResolve = nil;
                 }
             }
+            
+            CGImageRelease(rotatedCGImage);
         }
 
         return;
