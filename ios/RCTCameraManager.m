@@ -938,8 +938,8 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
                 @"kCGImageSourceThumbnailMaxPixelSize": @2108
             };
             // create cgimage
-            //CGImageRef rotatedCGImage = CGImageSourceCreateThumbnailAtIndex(source, 0, (CFDictionaryRef)options);
-            CGImageRef rotatedCGImage = photo.CGImageRepresentation;
+            CGImageRef rotatedCGImage = CGImageSourceCreateThumbnailAtIndex(source, 0, (CFDictionaryRef)options);
+
             // Erase stupid TIFF stuff
             [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
@@ -957,7 +957,6 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
             NSString *documentsDirectory = [paths firstObject];
 
             NSFileManager *fileManager = [NSFileManager defaultManager];
-            AVCaptureBracketedStillImageSettings *setting = photo.bracketSettings;
 
             long index = photo.photoCount - 1;
 
