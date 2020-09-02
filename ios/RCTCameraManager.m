@@ -977,9 +977,10 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
             NSString *fullPath = [[documentsDirectory stringByAppendingPathComponent:[[NSString stringWithFormat:@"%ld_9", photo.photoCount] stringByAppendingString:[[NSUUID UUID] UUIDString]]] stringByAppendingPathExtension:@"jpg"];
 
             [fileManager createFileAtPath:fullPath contents:resizedImageData attributes:nil];
-            [self.sources insertObject:fullPath atIndex:index];      
+            [self.sources insertObject:fullPath atIndex:index];
+
             NSLog(@"Path %@", fullPath);
-            NSLog(@"NB captures: %lu", (unsigned long)self.sources.count);         
+            NSLog(@"NB captures: %lu", (unsigned long)self.sources.count);
             if (self.sources.count == self.exposures.count) {
                 if (self.captureResolve) {
                     self.captureResolve(self.sources);
