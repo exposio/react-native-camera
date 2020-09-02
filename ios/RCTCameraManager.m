@@ -930,12 +930,10 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     CGContextRef context = CGBitmapContextCreate(nil, newWidth, newHeight, CGImageGetBitsPerComponent(image), CGImageGetBytesPerRow(image), CGImageGetColorSpace(image), CGImageGetBitmapInfo(image));
     CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
     
-    CGRect rect = CGRectMake(0, 0, newWidth, newHeight);
-        
+    CGRect rect = CGRectMake(0, 0, newWidth, newHeight);       
     CGContextDrawImage(context, rect, image);
-        
-    CGImageRef resizedCGImage = CGBitmapContextCreateImage(context);
-        
+           
+    CGImageRef resizedCGImage = CGBitmapContextCreateImage(context);       
     CGContextRelease(context);
     
     return resizedCGImage;
@@ -953,12 +951,9 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
 
         //get all the metadata in the image
         NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
-
         if (imageMetadata) {
-
             // resize cgimage
             CGImageRef resizedCGImage = [self resizeImage:photo.CGImageRepresentation maxSize:2108];
-
             // Erase stupid TIFF stuff
             [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
@@ -982,18 +977,15 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
             NSString *fullPath = [[documentsDirectory stringByAppendingPathComponent:[[NSString stringWithFormat:@"%ld_9", photo.photoCount] stringByAppendingString:[[NSUUID UUID] UUIDString]]] stringByAppendingPathExtension:@"jpg"];
 
             [fileManager createFileAtPath:fullPath contents:resizedImageData attributes:nil];
-            [self.sources insertObject:fullPath atIndex:index];
-            
+            [self.sources insertObject:fullPath atIndex:index];      
             NSLog(@"Path %@", fullPath);
-            NSLog(@"NB captures: %lu", (unsigned long)self.sources.count);
-            
+            NSLog(@"NB captures: %lu", (unsigned long)self.sources.count);         
             if (self.sources.count == self.exposures.count) {
                 if (self.captureResolve) {
                     self.captureResolve(self.sources);
                     self.captureResolve = nil;
                 }
-            }
-            
+            }         
             CGImageRelease(resizedCGImage);
         }
 
@@ -1015,13 +1007,11 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
         CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)imageData, NULL);
         
         //get all the metadata in the image
-        NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
-        
+        NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];  
         // create cgimage
         CGImageRef rotatedCGImage = CGImageSourceCreateImageAtIndex(source, 0, nil);
         // resize cgimage
-        CGImageRef resizedCGImage = [self resizeImage:rotatedCGImage maxSize:2108];
-        
+        CGImageRef resizedCGImage = [self resizeImage:rotatedCGImage maxSize:2108];      
         // Erase stupid TIFF stuff
         [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
