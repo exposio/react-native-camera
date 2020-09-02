@@ -918,22 +918,25 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 //    //NSLog(@"Video Output: dropped an buffer");
 //}
 
-- (CGImageRef) resizeImage:(CGImageRef)image
-                   maxSize:(int)size
+- (CGImageRef) downsampleImage:(CGImageRef)image
+                       maxSize:(int)size
 {
     float width = CGImageGetWidth(image);
     float height = CGImageGetHeight(image);
     float scale = size / MAX(width, height);
+    
+    if(scale >= 1) return CGImageCreateCopy(image);
+    
     float newWidth = roundf(width * scale);
     float newHeight = roundf(height * scale);
     
     CGContextRef context = CGBitmapContextCreate(nil, newWidth, newHeight, CGImageGetBitsPerComponent(image), CGImageGetBytesPerRow(image), CGImageGetColorSpace(image), CGImageGetBitmapInfo(image));
     CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
     
-    CGRect rect = CGRectMake(0, 0, newWidth, newHeight);       
+    CGRect rect = CGRectMake(0, 0, newWidth, newHeight);    
     CGContextDrawImage(context, rect, image);
-
-    CGImageRef resizedCGImage = CGBitmapContextCreateImage(context);       
+        
+    CGImageRef resizedCGImage = CGBitmapContextCreateImage(context);      
     CGContextRelease(context);
     
     return resizedCGImage;
@@ -953,7 +956,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
         NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
         if (imageMetadata) {
             // resize cgimage
-            CGImageRef resizedCGImage = [self resizeImage:photo.CGImageRepresentation maxSize:2108];
+            CGImageRef resizedCGImage = [self downsampleImage:photo.CGImageRepresentation maxSize:2108];
             // Erase stupid TIFF stuff
             [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
@@ -1012,7 +1015,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
         // create cgimage
         CGImageRef rotatedCGImage = CGImageSourceCreateImageAtIndex(source, 0, nil);
         // resize cgimage
-        CGImageRef resizedCGImage = [self resizeImage:rotatedCGImage maxSize:2108];      
+        CGImageRef resizedCGImage = [self downsampleImage:rotatedCGImage maxSize:2108];      
         // Erase stupid TIFF stuff
         [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
