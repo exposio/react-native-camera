@@ -932,7 +932,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     
     CGRect rect = CGRectMake(0, 0, newWidth, newHeight);       
     CGContextDrawImage(context, rect, image);
-           
+
     CGImageRef resizedCGImage = CGBitmapContextCreateImage(context);       
     CGContextRelease(context);
     
@@ -1005,7 +1005,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
 
         // Create image source
         CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)imageData, NULL);
-        
+
         //get all the metadata in the image
         NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];  
         // create cgimage
