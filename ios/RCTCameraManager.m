@@ -925,7 +925,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     float height = CGImageGetHeight(image);
     float scale = size / MAX(width, height);
     
-    if(scale >= 1) return CGImageCreateCopy(image);
+    if (scale >= 1) return CGImageCreateCopy(image);
     
     float newWidth = roundf(width * scale);
     float newHeight = roundf(height * scale);
