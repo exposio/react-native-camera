@@ -253,6 +253,13 @@ RCT_CUSTOM_VIEW_PROPERTY(type, NSInteger, RCTCamera) {
         self.videoCaptureDeviceInput = captureDeviceInput;
         [self initCaptureDeviceConfiguration];
         [self setFlashMode];
+          AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
+          if ([device lockForConfiguration:&error]) {
+              device.videoZoomFactor = 1.3f;
+              [device unlockForConfiguration];
+          } else {
+              NSLog(@"error: %@", error);
+          }
       }
       else
       {
@@ -484,7 +491,9 @@ RCT_EXPORT_METHOD(lockFocus:(NSDictionary *)options resolve:(RCTPromiseResolveBl
     NSError *error;
 
     if ([device lockForConfiguration:&error]) {
-        [device setFocusMode:AVCaptureFocusModeAutoFocus];
+        if ([device isFocusModeSupported:AVCaptureFocusModeAutoFocus]){
+            [device setFocusMode:AVCaptureFocusModeAutoFocus];
+        }
         [device unlockForConfiguration];
         resolve(@YES);
     } else {
@@ -497,7 +506,9 @@ RCT_EXPORT_METHOD(unlockFocus:(NSDictionary *)options resolve:(RCTPromiseResolve
     NSError *error;
 
     if ([device lockForConfiguration:&error]) {
-        [device setFocusMode:AVCaptureFocusModeContinuousAutoFocus];
+        if ([device isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]){
+            [device setFocusMode:AVCaptureFocusModeContinuousAutoFocus];
+        }
         [device unlockForConfiguration];
         resolve(@YES);
     } else {
@@ -751,6 +762,13 @@ RCT_EXPORT_METHOD(getPreviewPosition:(RCTPromiseResolveBlock)resolve reject:(RCT
         self.videoCaptureDeviceInput = captureDeviceInput;
         [self initCaptureDeviceConfiguration];
         [self setFlashMode];
+        AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
+        if ([device lockForConfiguration:&error]) {
+            device.videoZoomFactor = 1.3f;
+            [device unlockForConfiguration];
+        } else {
+            NSLog(@"error: %@", error);
+        }
       }
       [self.metadataOutput setMetadataObjectTypes:self.metadataOutput.availableMetadataObjectTypes];
     }
@@ -1440,19 +1458,20 @@ didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
 
 - (AVCaptureDevice *)deviceWithMediaType:(NSString *)mediaType preferringPosition:(AVCaptureDevicePosition)position
 {
-  NSArray *devices = [AVCaptureDevice devicesWithMediaType:mediaType];
-  AVCaptureDevice *captureDevice = [devices firstObject];
-
-  for (AVCaptureDevice *device in devices)
+  // TESTT
+  NSArray *captureDeviceType = @[AVCaptureDeviceTypeBuiltInUltraWideCamera];
+  AVCaptureDeviceDiscoverySession *discoverySession = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:captureDeviceType mediaType:AVMediaTypeVideo position:position];
+ //NSArray *devices = [AVCaptureDevice devicesWithMediaType:mediaType];
+ AVCaptureDevice *captureDevice = [[discoverySession devices] firstObject];
+ for (AVCaptureDevice *device in [discoverySession devices])
+ {
+  if ([device position] == position)
   {
-    if ([device position] == position)
-    {
-      captureDevice = device;
-      break;
-    }
+   captureDevice = device;
+   break;
   }
-
-  return captureDevice;
+ }
+ return captureDevice;
 }
 
 - (void)subjectAreaDidChange:(NSNotification *)notification
