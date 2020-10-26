@@ -1105,17 +1105,17 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
 
       int itemsRemaining = [self.exposures count];
       NSLog(@"bracket: nb of exposures -> %lu", itemsRemaining);
-      int j = 0;
 
       while(itemsRemaining) {
-          NSRange range = NSMakeRange(j, MIN(self.stillImageOutput.maxBracketedCapturePhotoCount, itemsRemaining));
+          NSUInteger length = MIN(self.stillImageOutput.maxBracketedCapturePhotoCount, itemsRemaining);
+          NSUInteger startIndex = itemsRemaining - length;
+          NSRange range = NSMakeRange(startIndex, length);
           NSArray *subarray = [self.exposures subarrayWithRange:range];
           [exposuresBrackets addObject:subarray];
           itemsRemaining-=range.length;
-          j+=range.length;
       }
 
-      self.exposureBrackets = [[[exposuresBrackets reverseObjectEnumerator] allObjects] mutableCopy];
+      self.exposureBrackets = exposuresBrackets;
       [self captureBracket];
 #endif
   });
