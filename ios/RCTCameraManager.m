@@ -975,12 +975,12 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
 
             NSFileManager *fileManager = [NSFileManager defaultManager];
 
-            long index = photo.photoCount - 1;
+            long index = self.sources.count + 1;
 
-            NSString *fullPath = [[documentsDirectory stringByAppendingPathComponent:[[NSString stringWithFormat:@"%ld_9", photo.photoCount] stringByAppendingString:[[NSUUID UUID] UUIDString]]] stringByAppendingPathExtension:@"jpg"];
+            NSString *fullPath = [[documentsDirectory stringByAppendingPathComponent:[[NSString stringWithFormat:@"%ld_9", index] stringByAppendingString:[[NSUUID UUID] UUIDString]]] stringByAppendingPathExtension:@"jpg"];
 
             [fileManager createFileAtPath:fullPath contents:resizedImageData attributes:nil];
-            [self.sources insertObject:fullPath atIndex:index];
+            [self.sources addObject:fullPath];
 
             NSLog(@"Path %@", fullPath);
             NSLog(@"NB captures: %lu", (unsigned long)self.sources.count);
@@ -1115,7 +1115,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
           j+=range.length;
       }
 
-      self.exposureBrackets = exposuresBrackets;
+      self.exposureBrackets = [[[exposuresBrackets reverseObjectEnumerator] allObjects] mutableCopy];
       [self captureBracket];
 #endif
   });
