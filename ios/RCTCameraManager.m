@@ -251,6 +251,7 @@ RCT_CUSTOM_VIEW_PROPERTY(type, NSInteger, RCTCamera) {
 
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(subjectAreaDidChange:) name:AVCaptureDeviceSubjectAreaDidChangeNotification object:captureDevice];
         self.videoCaptureDeviceInput = captureDeviceInput;
+        [self configureCaptureDevice];
         [self setFlashMode];
       }
       else
@@ -262,6 +263,26 @@ RCT_CUSTOM_VIEW_PROPERTY(type, NSInteger, RCTCamera) {
     });
   }
   [self initializeCaptureSessionInput:AVMediaTypeVideo];
+}
+
+
+- (void)configureCaptureDevice {
+    AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
+    NSError *error = nil;
+         
+    if ([device lockForConfiguration:&error])
+    {
+        [device setAutomaticallyAdjustsVideoHDREnabled:FALSE];
+        [device setVideoHDREnabled:FALSE];
+        if (@available(iOS 13.0, *)) {
+            [device setGlobalToneMappingEnabled:device.activeFormat.isGlobalToneMappingSupported];
+        }
+        [device unlockForConfiguration];
+    }
+    else
+    {
+        NSLog(@"%@", error);
+    }
 }
 
 RCT_CUSTOM_VIEW_PROPERTY(flashMode, NSInteger, RCTCamera) {
@@ -722,6 +743,7 @@ RCT_EXPORT_METHOD(getPreviewPosition:(RCTPromiseResolveBlock)resolve reject:(RCT
       }
       else if (type == AVMediaTypeVideo) {
         self.videoCaptureDeviceInput = captureDeviceInput;
+        [self configureCaptureDevice];
         [self setFlashMode];
       }
       [self.metadataOutput setMetadataObjectTypes:self.metadataOutput.availableMetadataObjectTypes];
