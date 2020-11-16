@@ -251,7 +251,7 @@ RCT_CUSTOM_VIEW_PROPERTY(type, NSInteger, RCTCamera) {
 
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(subjectAreaDidChange:) name:AVCaptureDeviceSubjectAreaDidChangeNotification object:captureDevice];
         self.videoCaptureDeviceInput = captureDeviceInput;
-        [self configureCaptureDevice];
+        [self initCaptureDeviceConfiguration];
         [self setFlashMode];
       }
       else
@@ -266,7 +266,7 @@ RCT_CUSTOM_VIEW_PROPERTY(type, NSInteger, RCTCamera) {
 }
 
 
-- (void)configureCaptureDevice {
+- (void)initCaptureDeviceConfiguration {
     AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
     NSError *error = nil;
 
@@ -749,7 +749,7 @@ RCT_EXPORT_METHOD(getPreviewPosition:(RCTPromiseResolveBlock)resolve reject:(RCT
       }
       else if (type == AVMediaTypeVideo) {
         self.videoCaptureDeviceInput = captureDeviceInput;
-        [self configureCaptureDevice];
+        [self initCaptureDeviceConfiguration];
         [self setFlashMode];
       }
       [self.metadataOutput setMetadataObjectTypes:self.metadataOutput.availableMetadataObjectTypes];
