@@ -214,57 +214,16 @@ RCT_CUSTOM_VIEW_PROPERTY(aspect, NSInteger, RCTCamera) {
   self.previewLayer.videoGravity = aspectString;
 }
 
-RCT_CUSTOM_VIEW_PROPERTY(type, NSInteger, RCTCamera) {
-  NSInteger type = [RCTConvert NSInteger:json];
-
-  self.presetCamera = type;
-  if (self.session.isRunning) {
-    dispatch_async(self.sessionQueue, ^{
-      AVCaptureDevice *currentCaptureDevice = [self.videoCaptureDeviceInput device];
-      AVCaptureDevicePosition position = (AVCaptureDevicePosition)type;
-      AVCaptureDevice *captureDevice = [self deviceWithMediaType:AVMediaTypeVideo preferringPosition:(AVCaptureDevicePosition)position];
-
-      if (captureDevice == nil) {
-        return;
-      }
-
-      self.presetCamera = type;
-
-      NSError *error = nil;
-      AVCaptureDeviceInput *captureDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:captureDevice error:&error];
-
-      if (error || captureDeviceInput == nil)
-      {
-        NSLog(@"%@", error);
-        return;
-      }
-
-      [self.session beginConfiguration];
-
-      [self.session removeInput:self.videoCaptureDeviceInput];
-
-      if ([self.session canAddInput:captureDeviceInput])
-      {
-        [self.session addInput:captureDeviceInput];
-
-        [NSNotificationCenter.defaultCenter removeObserver:self name:AVCaptureDeviceSubjectAreaDidChangeNotification object:currentCaptureDevice];
-
-        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(subjectAreaDidChange:) name:AVCaptureDeviceSubjectAreaDidChangeNotification object:captureDevice];
-        self.videoCaptureDeviceInput = captureDeviceInput;
-        [self initCaptureDeviceConfiguration];
-        [self setFlashMode];
-      }
-      else
-      {
-        [self.session addInput:self.videoCaptureDeviceInput];
-      }
-
-      [self.session commitConfiguration];
-    });
-  }
-  [self initializeCaptureSessionInput:AVMediaTypeVideo];
+RCT_CUSTOM_VIEW_PROPERTY(type, NSInteger, RCTCamera)
+{
+    NSInteger newType = [RCTConvert NSInteger:json];
+    if (self.presetCamera != newType) {
+        [self setPresetCamera:newType];
+        
+        [self initializeCaptureSessionInput:AVMediaTypeVideo];
+        [self startSession];
+    }
 }
-
 
 - (void)initCaptureDeviceConfiguration {
     AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
@@ -1461,7 +1420,7 @@ didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
 -(AVCaptureDevice*)getDevice
 {
     AVCaptureDevice *captureDevice;
-    if(self.cameraId != nil && self.cameraId.length){
+    if (self.cameraId != nil && self.cameraId.length) {
         captureDevice = [self deviceWithCameraId:self.cameraId];
     }
     else{
@@ -1661,7 +1620,7 @@ RCT_EXPORT_METHOD(getCameraIds:(RCTPromiseResolveBlock)resolve
                     @"deviceType": [camera deviceType]
                 }];
             }
-            else if([camera position] == AVCaptureDevicePositionBack){
+            else if ([camera position] == AVCaptureDevicePositionBack) {
                 [res addObject: @{
                     @"id": [camera uniqueID],
                     @"type": @(RCTCameraTypeBack),
@@ -1676,14 +1635,14 @@ RCT_EXPORT_METHOD(getCameraIds:(RCTPromiseResolveBlock)resolve
         for(AVCaptureDevice *camera in devices) {
 
 
-            if([camera position] == AVCaptureDevicePositionFront) {
+            if ([camera position] == AVCaptureDevicePositionFront) {
                 [res addObject: @{
                     @"id": [camera uniqueID],
                     @"type": @(RCTCameraTypeFront),
                     @"deviceType": @""
                 }];
             }
-            else if([camera position] == AVCaptureDevicePositionBack){
+            else if ([camera position] == AVCaptureDevicePositionBack) {
                 [res addObject: @{
                     @"id": [camera uniqueID],
                     @"type": @(RCTCameraTypeBack),
