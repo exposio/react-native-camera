@@ -253,13 +253,6 @@ RCT_CUSTOM_VIEW_PROPERTY(type, NSInteger, RCTCamera) {
         self.videoCaptureDeviceInput = captureDeviceInput;
         [self initCaptureDeviceConfiguration];
         [self setFlashMode];
-          AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
-          if ([device lockForConfiguration:&error]) {
-              device.videoZoomFactor = 1.3f;
-              [device unlockForConfiguration];
-          } else {
-              NSLog(@"error: %@", error);
-          }
       }
       else
       {
@@ -777,13 +770,6 @@ RCT_EXPORT_METHOD(getPreviewPosition:(RCTPromiseResolveBlock)resolve reject:(RCT
         self.videoCaptureDeviceInput = captureDeviceInput;
         [self initCaptureDeviceConfiguration];
         [self setFlashMode];
-        AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
-        if ([device lockForConfiguration:&error]) {
-            device.videoZoomFactor = 1.3f;
-            [device unlockForConfiguration];
-        } else {
-            NSLog(@"error: %@", error);
-        }
       }
       [self.metadataOutput setMetadataObjectTypes:self.metadataOutput.availableMetadataObjectTypes];
     }
