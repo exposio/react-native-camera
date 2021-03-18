@@ -301,7 +301,7 @@ RCT_CUSTOM_VIEW_PROPERTY(cameraId, NSString, RCTCamera)
         
         // using same call as setting the type here since they
         // both require the same updates
-        [self initializeCaptureSessionInput:AVMediaTypeAudio];
+        [self initializeCaptureSessionInput:AVMediaTypeVideo];
         [self startSession];
     }
 }
