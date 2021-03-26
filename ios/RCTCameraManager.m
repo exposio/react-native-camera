@@ -1527,9 +1527,9 @@ didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
 
 -(float) getMaxZoomFactor:(AVCaptureDevice*)device {
     float maxZoom;
-    if(self.maxZoom > 1){
+    if (self.maxZoom > 1) {
         maxZoom = MIN(self.maxZoom, device.activeFormat.videoMaxZoomFactor);
-    }else{
+    } else {
         maxZoom = device.activeFormat.videoMaxZoomFactor;
     }
     return maxZoom;
