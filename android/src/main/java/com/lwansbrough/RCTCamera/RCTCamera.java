@@ -4,6 +4,7 @@
 
 package com.lwansbrough.RCTCamera;
 
+import android.graphics.drawable.GradientDrawable;
 import android.hardware.Camera;
 import android.media.CamcorderProfile;
 import android.util.Log;
@@ -73,6 +74,22 @@ public class RCTCamera {
         return cameraInfo.previewHeight;
     }
 
+    public int getPreviewVisibleHeight(int type) {
+        CameraInfoWrapper cameraInfo = _cameraInfos.get(type);
+        if (null == cameraInfo) {
+            return 0;
+        }
+        return cameraInfo.previewVisibleHeight;
+    }
+
+    public int getPreviewVisibleWidth(int type) {
+        CameraInfoWrapper cameraInfo = _cameraInfos.get(type);
+        if (null == cameraInfo) {
+            return 0;
+        }
+        return cameraInfo.previewVisibleWidth;
+    }
+
     public Camera.Size getBestSize(List<Camera.Size> supportedSizes, int maxWidth, int maxHeight) {
         Camera.Size bestSize = null;
         for (Camera.Size size : supportedSizes) {
@@ -123,8 +140,8 @@ public class RCTCamera {
               continue;
           }
 
-          int currentDelta = Math.abs(closestSize.width - matchWidth) * Math.abs(closestSize.height - matchHeight);
-          int newDelta = Math.abs(size.width - matchWidth) * Math.abs(size.height - matchHeight);
+          double currentDelta = Math.sqrt(Math.pow(closestSize.width - matchWidth,2) + Math.pow(closestSize.height - matchHeight,2));
+          double newDelta = Math.sqrt(Math.pow(size.width - matchWidth,2) + Math.pow(size.height - matchHeight,2));
 
           if (newDelta < currentDelta) {
               closestSize = size;
@@ -204,7 +221,12 @@ public class RCTCamera {
         // this hint can help reduce the time it takes to start recording.
         Camera.Parameters parameters = camera.getParameters();
         parameters.setRecordingHint(captureMode == RCTCameraModule.RCT_CAMERA_CAPTURE_MODE_VIDEO);
-        camera.setParameters(parameters);
+        try{
+          camera.setParameters(parameters);
+        }
+        catch(RuntimeException e ) {
+          Log.e("RCTCamera", "setParameters failed", e);
+        }
     }
 
     public void setExposure(final int cameraType, final int exposure) {
@@ -299,7 +321,12 @@ public class RCTCamera {
 
         if (pictureSize != null) {
             parameters.setPictureSize(pictureSize.width, pictureSize.height);
+            try{
             camera.setParameters(parameters);
+            }
+            catch(RuntimeException e ) {
+              Log.e("RCTCamera", "setParameters failed", e);
+            }
         }
     }
 
@@ -371,7 +398,12 @@ public class RCTCamera {
         List<String> flashModes = parameters.getSupportedFlashModes();
         if (flashModes != null && flashModes.contains(value)) {
             parameters.setFlashMode(value);
-            camera.setParameters(parameters);
+            try{
+              camera.setParameters(parameters);
+            }
+          catch(RuntimeException e ) {
+            Log.e("RCTCamera", "setParameters failed", e);
+          }
         }
     }
 
@@ -397,7 +429,33 @@ public class RCTCamera {
         List<String> flashModes = parameters.getSupportedFlashModes();
         if (flashModes != null && flashModes.contains(value)) {
             parameters.setFlashMode(value);
+            try{
             camera.setParameters(parameters);
+            }
+            catch(RuntimeException e ) {
+              Log.e("RCTCamera", "setParameters failed", e);
+            }
+        }
+    }
+
+    public void setZoom(int cameraType, int zoom) {
+        Camera camera = this.acquireCameraInstance(cameraType);
+        if (null == camera) {
+            return;
+        }
+
+        Camera.Parameters parameters = camera.getParameters();
+        int maxZoom = parameters.getMaxZoom();
+        if (parameters.isZoomSupported()) {
+            if (zoom >=0 && zoom < maxZoom) {
+                parameters.setZoom(zoom);
+                try{
+                  camera.setParameters(parameters);
+                }
+                catch(RuntimeException e ) {
+                  Log.e("RCTCamera", "setParameters failed", e);
+                }
+            }
         }
     }
 
@@ -474,6 +532,16 @@ public class RCTCamera {
         }
     }
 
+    public void setPreviewVisibleSize(int type, int width, int height) {
+        CameraInfoWrapper cameraInfo = _cameraInfos.get(type);
+        if (cameraInfo == null) {
+            return;
+        }
+
+        cameraInfo.previewVisibleWidth = width;
+        cameraInfo.previewVisibleHeight = height;
+    }
+
     private RCTCamera(int deviceOrientation) {
         _cameras = new HashMap<>();
         _cameraInfos = new HashMap<>();
@@ -504,6 +572,8 @@ public class RCTCamera {
         public int rotation = 0;
         public int previewWidth = -1;
         public int previewHeight = -1;
+        public int previewVisibleWidth = -1;
+        public int previewVisibleHeight = -1;
 
         public CameraInfoWrapper(Camera.CameraInfo info) {
             this.info = info;
