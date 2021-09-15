@@ -483,8 +483,8 @@ public class CameraModule extends ReactContextBaseJavaModule {
                   ArrayList<int[]> ranges = cameraView.getSupportedPreviewFpsRange();
                   for (int[] range : ranges) {
                       WritableMap m = new WritableNativeMap();
-                      m.putInt("MAXIMUM_FPS", range[0]);
-                      m.putInt("MINIMUM_FPS", range[1]);
+                      m.putInt("MINIMUM_FPS", range[0]);
+                      m.putInt("MAXIMUM_FPS", range[1]);
                       result.pushMap(m);
                   }
                   promise.resolve(result);
@@ -493,6 +493,11 @@ public class CameraModule extends ReactContextBaseJavaModule {
               }
           }
       });
+  }
+
+  @ReactMethod
+  public void hasTorch(final Promise promise) {
+      promise.resolve(getReactApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH));
   }
 
   // Helper method to check for corrupted videos on Android
