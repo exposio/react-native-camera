@@ -839,30 +839,6 @@ BOOL _sessionInterrupted = NO;
     [self captureBracket];
 }
 
-- (CGImageRef) downsampleImage:(CGImageRef)image
-                       maxSize:(int)size
-{
-    float width = CGImageGetWidth(image);
-    float height = CGImageGetHeight(image);
-    float scale = size / MAX(width, height);
-    
-    if (scale >= 1) return CGImageCreateCopy(image);
-    
-    float newWidth = roundf(width * scale);
-    float newHeight = roundf(height * scale);
-    
-    CGContextRef context = CGBitmapContextCreate(nil, newWidth, newHeight, CGImageGetBitsPerComponent(image), CGImageGetBytesPerRow(image), CGImageGetColorSpace(image), CGImageGetBitmapInfo(image));
-    CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
-    
-    CGRect rect = CGRectMake(0, 0, newWidth, newHeight);
-    CGContextDrawImage(context, rect, image);
-        
-    CGImageRef resizedCGImage = CGBitmapContextCreateImage(context);
-    CGContextRelease(context);
-    
-    return resizedCGImage;
-}
-
 - (void)captureOutput:(AVCapturePhotoOutput *)output
 didFinishProcessingPhoto:(AVCapturePhoto *)photo
                 error:(NSError *)error
@@ -877,7 +853,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
         NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
         if (imageMetadata) {
             // resize cgimage
-            CGImageRef resizedCGImage = [self downsampleImage:photo.CGImageRepresentation maxSize:2108];
+            CGImageRef resizedCGImage = [RNImageUtils downsampleImage:photo.CGImageRepresentation maxSize:2108];
             // Erase stupid TIFF stuff
             [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
@@ -894,13 +870,11 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
             NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
             NSString *documentsDirectory = [paths firstObject];
 
-            NSFileManager *fileManager = [NSFileManager defaultManager];
-
             long index = self.sources.count + 1;
 
             NSString *fullPath = [[documentsDirectory stringByAppendingPathComponent:[[NSString stringWithFormat:@"%ld_9", index] stringByAppendingString:[[NSUUID UUID] UUIDString]]] stringByAppendingPathExtension:@"jpg"];
 
-            [fileManager createFileAtPath:fullPath contents:resizedImageData attributes:nil];
+            [RNImageUtils writeImage:resizedImageData toPath:fullPath];
             [self.sources addObject:fullPath];
 
             NSLog(@"Path %@", fullPath);
