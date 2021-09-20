@@ -778,26 +778,65 @@ BOOL _sessionInterrupted = NO;
 
     [connection setVideoOrientation:orientation];
     
-    NSArray *bracketedStillImageSettings = @[ [AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:-2.],
-        [AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:0.],
-        [AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:2.] ];
-
-    AVCapturePhotoBracketSettings *settings = [AVCapturePhotoBracketSettings photoBracketSettingsWithRawPixelFormatType:0 processedFormat:nil bracketedSettings:bracketedStillImageSettings];
-    settings.highResolutionPhotoEnabled = YES;
-
     self.captureResolve = resolve;
     self.captureReject = reject;
+    self.exposures = [[NSMutableArray alloc] initWithCapacity:0];
+    // TODO : receive this as parameter
+    [self.exposures addObject:[NSNumber numberWithDouble:4.5]];
+    [self.exposures addObject:[NSNumber numberWithDouble:3.66]];
+    [self.exposures addObject:[NSNumber numberWithDouble:2.66]];
+    [self.exposures addObject:[NSNumber numberWithDouble:1.33]];
+    [self.exposures addObject:[NSNumber numberWithDouble:0.0]];
+    [self.exposures addObject:[NSNumber numberWithDouble:-1.33]];
+    [self.exposures addObject:[NSNumber numberWithDouble:-3.0]];
+    [self.exposures addObject:[NSNumber numberWithDouble:-5.0]];
+    [self.exposures addObject:[NSNumber numberWithDouble:-7.0]];
     [self.sources removeAllObjects];
 
-    @try {
-        [self.photoOutput capturePhotoWithSettings:settings delegate:self];
-    } @catch (NSException *exception) {
-        reject(
-               @"E_IMAGE_CAPTURE_FAILED",
-               @"Got exception while taking picture",
-               [NSError errorWithDomain:@"E_IMAGE_CAPTURE_FAILED" code: 500 userInfo:@{NSLocalizedDescriptionKey:exception.reason}]
-        );
+    NSMutableArray *exposuresBrackets = [NSMutableArray array];
+
+    int itemsRemaining = [self.exposures count];
+    NSLog(@"bracket: nb of exposures -> %lu", itemsRemaining);
+
+    while(itemsRemaining) {
+        NSUInteger length = MIN(self.photoOutput.maxBracketedCapturePhotoCount, itemsRemaining);
+        NSUInteger startIndex = itemsRemaining - length;
+        NSRange range = NSMakeRange(startIndex, length);
+        NSArray *subarray = [self.exposures subarrayWithRange:range];
+        [exposuresBrackets addObject:subarray];
+        itemsRemaining-=range.length;
     }
+
+    self.exposureBrackets = exposuresBrackets;
+    [self captureBracket];
+}
+
+- (void)captureBracket {
+    NSLog(@"bracket: captureBracket");
+    if ([self.exposureBrackets count]) {
+        NSLog(@"bracket: jobs remaining %lu", [self.exposureBrackets count]);
+        NSMutableArray *bracketedStillImageSettings = [[NSMutableArray alloc] init];
+        NSArray *bracket = [self.exposureBrackets lastObject];
+        AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
+
+        [self.exposureBrackets removeLastObject];
+
+        for (NSNumber *bias in bracket) {
+            NSLog(@"bracket expoures: %lu / %lu", bracketedStillImageSettings.count, self.photoOutput.maxBracketedCapturePhotoCount);
+
+            [bracketedStillImageSettings addObject:[AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:[bias doubleValue]]];
+        }
+
+        AVCapturePhotoBracketSettings *settings = [AVCapturePhotoBracketSettings photoBracketSettingsWithRawPixelFormatType:0 processedFormat:nil bracketedSettings:bracketedStillImageSettings];
+        [self.photoOutput capturePhotoWithSettings:settings delegate:self];
+    } else {
+        NSLog(@"bracket: jobs done");
+    }
+}
+
+- (void)captureOutput:(AVCapturePhotoOutput *)output didCapturePhotoForResolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings {
+    NSLog(@"bracket: didCapturePhotoForResolvedSettings");
+    [self captureBracket];
 }
 
 - (CGImageRef) downsampleImage:(CGImageRef)image
@@ -866,7 +905,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
 
             NSLog(@"Path %@", fullPath);
             NSLog(@"NB captures: %lu", (unsigned long)self.sources.count);
-            if (self.sources.count == 3) { // TODO put exposure count
+            if (self.sources.count == self.exposures.count) {
                 if (self.captureResolve) {
                     self.captureResolve(self.sources);
                     self.captureResolve = nil;
