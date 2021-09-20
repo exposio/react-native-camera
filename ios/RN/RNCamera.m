@@ -777,16 +777,20 @@ BOOL _sessionInterrupted = NO;
     AVCaptureConnection *connection = [self.photoOutput connectionWithMediaType:AVMediaTypeVideo];
 
     [connection setVideoOrientation:orientation];
+    
+    NSArray *bracketedStillImageSettings = @[ [AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:-2.],
+        [AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:0.],
+        [AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:2.] ];
 
-    AVCapturePhotoSettings* photoSettings = [AVCapturePhotoSettings photoSettings];
-    photoSettings.highResolutionPhotoEnabled = YES;
+    AVCapturePhotoBracketSettings *settings = [AVCapturePhotoBracketSettings photoBracketSettingsWithRawPixelFormatType:0 processedFormat:nil bracketedSettings:bracketedStillImageSettings];
+    settings.highResolutionPhotoEnabled = YES;
 
     self.captureResolve = resolve;
     self.captureReject = reject;
     [self.sources removeAllObjects];
 
     @try {
-        [self.photoOutput capturePhotoWithSettings:photoSettings delegate:self];
+        [self.photoOutput capturePhotoWithSettings:settings delegate:self];
     } @catch (NSException *exception) {
         reject(
                @"E_IMAGE_CAPTURE_FAILED",
@@ -862,7 +866,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
 
             NSLog(@"Path %@", fullPath);
             NSLog(@"NB captures: %lu", (unsigned long)self.sources.count);
-            if (self.sources.count == 1) { // TODO put exposure count
+            if (self.sources.count == 3) { // TODO put exposure count
                 if (self.captureResolve) {
                     self.captureResolve(self.sources);
                     self.captureResolve = nil;
