@@ -817,7 +817,6 @@ BOOL _sessionInterrupted = NO;
         NSLog(@"bracket: jobs remaining %lu", [self.exposureBrackets count]);
         NSMutableArray *bracketedStillImageSettings = [[NSMutableArray alloc] init];
         NSArray *bracket = [self.exposureBrackets lastObject];
-        AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
 
         [self.exposureBrackets removeLastObject];
 
@@ -828,6 +827,9 @@ BOOL _sessionInterrupted = NO;
         }
 
         AVCapturePhotoBracketSettings *settings = [AVCapturePhotoBracketSettings photoBracketSettingsWithRawPixelFormatType:0 processedFormat:nil bracketedSettings:bracketedStillImageSettings];
+        settings.lensStabilizationEnabled = self.photoOutput.isLensStabilizationDuringBracketedCaptureSupported;
+        settings.highResolutionPhotoEnabled = true;
+        
         [self.photoOutput capturePhotoWithSettings:settings delegate:self];
     } else {
         NSLog(@"bracket: jobs done");
