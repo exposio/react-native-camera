@@ -679,7 +679,8 @@ RCT_EXPORT_METHOD(lockFocus:(nonnull NSNumber *)reactTag
         if (![view isKindOfClass:[RNCamera class]]) {
             RCTLogError(@"Invalid view returned from registry, expecting RNCamera, got: %@", view);
         } else {
-            view.autoFocus = AVCaptureFocusModeAutoFocus;
+            [view setAutoFocus:AVCaptureFocusModeAutoFocus];
+            [view updateFocusMode];
             resolve(@YES);
         }
     }];
@@ -694,7 +695,8 @@ RCT_EXPORT_METHOD(unlockFocus:(nonnull NSNumber *)reactTag
         if (![view isKindOfClass:[RNCamera class]]) {
             RCTLogError(@"Invalid view returned from registry, expecting RNCamera, got: %@", view);
         } else {
-            view.autoFocus = AVCaptureFocusModeContinuousAutoFocus;
+            [view setAutoFocus:AVCaptureFocusModeContinuousAutoFocus];
+            [view updateFocusMode];
             resolve(@YES);
         }
     }];
