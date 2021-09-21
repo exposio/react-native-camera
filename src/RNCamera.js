@@ -656,6 +656,14 @@ export default class Camera extends React.Component<PropsType, StateType> {
     CameraManager.resumePreview(this._cameraHandle);
   }
 
+  lockFocus() {
+    return CameraManager.lockFocus(this._cameraHandle);
+  }
+
+  unlockFocus() {
+    return CameraManager.unlockFocus(this._cameraHandle);
+  }
+
   _onMountError = ({ nativeEvent }: EventCallbackArgumentsType) => {
     if (this.props.onMountError) {
       this.props.onMountError(nativeEvent);
