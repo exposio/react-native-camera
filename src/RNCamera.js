@@ -672,6 +672,14 @@ export default class Camera extends React.Component<PropsType, StateType> {
     return CameraManager.unlockAutoExposure(this._cameraHandle);
   }
 
+  lockWhiteBalance() {
+    return CameraManager.lockWhiteBalance(this._cameraHandle);
+  }
+
+  unlockWhiteBalance() {
+    return CameraManager.unlockWhiteBalance(this._cameraHandle);
+  }
+
   _onMountError = ({ nativeEvent }: EventCallbackArgumentsType) => {
     if (this.props.onMountError) {
       this.props.onMountError(nativeEvent);

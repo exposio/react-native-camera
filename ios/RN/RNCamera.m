@@ -613,6 +613,13 @@ BOOL _sessionInterrupted = NO;
                 RCTLogWarn(@"%s: locked whitebalance mode ist note supported. Fallback to continuous auto white balance mode", __func__);
             }
             [device setWhiteBalanceMode:AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance];
+        } else if (self.whiteBalance == RNCameraWhiteBalanceCurrent) {
+            @try{
+                [device setWhiteBalanceModeLockedWithDeviceWhiteBalanceGains:AVCaptureWhiteBalanceGainsCurrent completionHandler:nil];
+            }
+            @catch(NSException *exception){
+                RCTLogError(@"Failed to set white balance: %@", exception);
+            }
         } else {
             AVCaptureWhiteBalanceTemperatureAndTintValues temperatureAndTint = {
                 .temperature = [RNCameraUtils temperatureForWhiteBalance:self.whiteBalance],
