@@ -701,4 +701,34 @@ RCT_EXPORT_METHOD(unlockFocus:(nonnull NSNumber *)reactTag
         }
     }];
 }
+
+RCT_EXPORT_METHOD(lockAutoExposure:(nonnull NSNumber *)reactTag
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject) {
+    [self.bridge.uiManager addUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, RNCamera *> *viewRegistry) {
+        RNCamera *view = viewRegistry[reactTag];
+        if (![view isKindOfClass:[RNCamera class]]) {
+            RCTLogError(@"Invalid view returned from registry, expecting RNCamera, got: %@", view);
+        } else {
+            [view setExposureMode:AVCaptureExposureModeAutoExpose];
+            [view updateExposure];
+            resolve(@YES);
+        }
+    }];
+}
+
+RCT_EXPORT_METHOD(unlockAutoExposure:(nonnull NSNumber *)reactTag
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject) {
+    [self.bridge.uiManager addUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, RNCamera *> *viewRegistry) {
+        RNCamera *view = viewRegistry[reactTag];
+        if (![view isKindOfClass:[RNCamera class]]) {
+            RCTLogError(@"Invalid view returned from registry, expecting RNCamera, got: %@", view);
+        } else {
+            [view setExposureMode:AVCaptureFocusModeContinuousAutoFocus];
+            [view updateExposure];
+            resolve(@YES);
+        }
+    }];
+}
 @end

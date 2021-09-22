@@ -83,6 +83,7 @@ BOOL _sessionInterrupted = NO;
 
         self.autoFocus = -1;
         self.exposure = -1;
+        self.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
         self.presetCamera = AVCaptureDevicePositionUnspecified;
         self.cameraId = @"";
         self.isFocusedOnPoint = NO;
@@ -677,7 +678,7 @@ BOOL _sessionInterrupted = NO;
         // Check that either no explicit exposure-val has been set yet
         // or that it has been reset. Check for > 1 is only a guard.
         if(self.exposure < 0 || self.exposure > 1){
-            [device setExposureMode:AVCaptureExposureModeContinuousAutoExposure];
+            [device setExposureMode:self.exposureMode];
             return;
         }
 

@@ -39,6 +39,7 @@
 @property(assign, nonatomic) float focusDepth;
 @property(assign, nonatomic) NSInteger whiteBalance;
 @property(nonatomic, strong) RNCustomWhiteBalanceSettings *customWhiteBalanceSettings;
+@property(assign, nonatomic) NSInteger exposureMode;
 @property(assign, nonatomic) float exposure;
 @property(assign, nonatomic) float exposureIsoMin;
 @property(assign, nonatomic) float exposureIsoMax;
