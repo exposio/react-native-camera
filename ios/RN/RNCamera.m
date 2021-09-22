@@ -790,20 +790,13 @@ BOOL _sessionInterrupted = NO;
     self.captureReject = reject;
     self.exposures = [[NSMutableArray alloc] initWithCapacity:0];
     // TODO : receive this as parameter
-    [self.exposures addObject:[NSNumber numberWithDouble:-7.0]];
-    [self.exposures addObject:[NSNumber numberWithDouble:-5.0]];
-    [self.exposures addObject:[NSNumber numberWithDouble:-3.0]];
-    [self.exposures addObject:[NSNumber numberWithDouble:-1.33]];
-    [self.exposures addObject:[NSNumber numberWithDouble:0.0]];
-    [self.exposures addObject:[NSNumber numberWithDouble:1.33]];
-    [self.exposures addObject:[NSNumber numberWithDouble:2.66]];
-    [self.exposures addObject:[NSNumber numberWithDouble:3.66]];
-    [self.exposures addObject:[NSNumber numberWithDouble:4.5]];
+    NSArray *stops = @[@-7.0, @-5.0, @-3.0, @-1.33, @0.0, @1.33, @2.66, @3.66, @4.5];
+    [self.exposures addObjectsFromArray:stops];
     [self.sources removeAllObjects];
 
     NSMutableArray *exposuresBrackets = [NSMutableArray array];
 
-    int itemsRemaining = [self.exposures count];
+    NSUInteger itemsRemaining = [self.exposures count];
     NSLog(@"bracket: nb of exposures -> %lu", itemsRemaining);
 
     while(itemsRemaining) {
@@ -829,7 +822,7 @@ BOOL _sessionInterrupted = NO;
         [self.exposureBrackets removeLastObject];
 
         for (NSNumber *bias in bracket) {
-            NSLog(@"bracket expoures: %lu / %lu", bracketedStillImageSettings.count, self.photoOutput.maxBracketedCapturePhotoCount);
+            NSLog(@"bracket exposures: %lu / %lu", bracketedStillImageSettings.count + 1, self.photoOutput.maxBracketedCapturePhotoCount);
 
             [bracketedStillImageSettings addObject:[AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:[bias doubleValue]]];
         }
