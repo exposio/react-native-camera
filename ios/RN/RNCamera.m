@@ -790,15 +790,15 @@ BOOL _sessionInterrupted = NO;
     self.captureReject = reject;
     self.exposures = [[NSMutableArray alloc] initWithCapacity:0];
     // TODO : receive this as parameter
-    [self.exposures addObject:[NSNumber numberWithDouble:4.5]];
-    [self.exposures addObject:[NSNumber numberWithDouble:3.66]];
-    [self.exposures addObject:[NSNumber numberWithDouble:2.66]];
-    [self.exposures addObject:[NSNumber numberWithDouble:1.33]];
-    [self.exposures addObject:[NSNumber numberWithDouble:0.0]];
-    [self.exposures addObject:[NSNumber numberWithDouble:-1.33]];
-    [self.exposures addObject:[NSNumber numberWithDouble:-3.0]];
-    [self.exposures addObject:[NSNumber numberWithDouble:-5.0]];
     [self.exposures addObject:[NSNumber numberWithDouble:-7.0]];
+    [self.exposures addObject:[NSNumber numberWithDouble:-5.0]];
+    [self.exposures addObject:[NSNumber numberWithDouble:-3.0]];
+    [self.exposures addObject:[NSNumber numberWithDouble:-1.33]];
+    [self.exposures addObject:[NSNumber numberWithDouble:0.0]];
+    [self.exposures addObject:[NSNumber numberWithDouble:1.33]];
+    [self.exposures addObject:[NSNumber numberWithDouble:2.66]];
+    [self.exposures addObject:[NSNumber numberWithDouble:3.66]];
+    [self.exposures addObject:[NSNumber numberWithDouble:4.5]];
     [self.sources removeAllObjects];
 
     NSMutableArray *exposuresBrackets = [NSMutableArray array];
