@@ -788,10 +788,7 @@ BOOL _sessionInterrupted = NO;
     
     self.captureResolve = resolve;
     self.captureReject = reject;
-    self.exposures = [[NSMutableArray alloc] initWithCapacity:0];
-    // TODO : receive this as parameter
-    NSArray *stops = @[@-7.0, @-5.0, @-3.0, @-1.33, @0.0, @1.33, @2.66, @3.66, @4.5];
-    [self.exposures addObjectsFromArray:stops];
+    self.exposures = [options objectForKey:@"exposures"];
     [self.sources removeAllObjects];
 
     NSMutableArray *exposuresBrackets = [NSMutableArray array];
