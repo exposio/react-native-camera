@@ -742,6 +742,18 @@ BOOL _sessionInterrupted = NO;
     });
 }
 
+- (void)updateGlobalToneMapping
+{
+    if (@available(iOS 13.0, *)) {
+        AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
+        if (device.activeFormat.globalToneMappingSupported) {
+            [self lockDevice:device andApplySettings:^{
+                [device setGlobalToneMappingEnabled:YES];
+            }];
+        }
+    }
+}
+
 - (void)takePictureWithOrientation:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject{
     
     UIInterfaceOrientation orientation = [self.sensorOrientationChecker getDeviceOrientation];
@@ -1469,6 +1481,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
                 [self updateAutoFocusPointOfInterest];
                 [self updateWhiteBalance];
                 [self updateFlashMode];
+                [self updateGlobalToneMapping];
             });
 
             [self.previewLayer.connection setVideoOrientation:orientation];
@@ -1521,6 +1534,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
                 // Need to update these since it gets reset on preset change
                 [self updateFlashMode];
                 [self updateZoom];
+                [self updateGlobalToneMapping];
             }
             else{
                 RCTLog(@"The selected preset [%@] does not work with the current session.", preset);
