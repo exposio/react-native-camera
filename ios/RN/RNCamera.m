@@ -807,9 +807,17 @@ BOOL _sessionInterrupted = NO;
 
     NSUInteger itemsRemaining = [self.exposures count];
     NSLog(@"bracket: nb of exposures -> %lu", itemsRemaining);
+    
+    NSUInteger bracketSize = self.photoOutput.maxBracketedCapturePhotoCount;
+    for (NSUInteger i = self.photoOutput.maxBracketedCapturePhotoCount; i > 1; i--) {
+        if (itemsRemaining % i == 0) {
+            bracketSize = i;
+            break;
+        }
+    }
 
     while(itemsRemaining) {
-        NSUInteger length = MIN(self.photoOutput.maxBracketedCapturePhotoCount, itemsRemaining);
+        NSUInteger length = MIN(bracketSize, itemsRemaining);
         NSUInteger startIndex = itemsRemaining - length;
         NSRange range = NSMakeRange(startIndex, length);
         NSArray *subarray = [self.exposures subarrayWithRange:range];
