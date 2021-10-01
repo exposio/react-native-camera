@@ -20,8 +20,9 @@
 		71C7FFD32013C817006EB75A /* RNImageUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 71C7FFD22013C817006EB75A /* RNImageUtils.m */; };
 		71C7FFD62013C824006EB75A /* RNFileSystem.m in Sources */ = {isa = PBXBuildFile; fileRef = 71C7FFD52013C824006EB75A /* RNFileSystem.m */; };
 		9FE592B31CA3CBF500788287 /* RCTSensorOrientationChecker.m in Sources */ = {isa = PBXBuildFile; fileRef = 9FE592B21CA3CBF500788287 /* RCTSensorOrientationChecker.m */; };
-		AB25605E22B972AD002452E2 /* CameraEventEmitter.m in Sources */ = {isa = PBXBuildFile; fileRef = AB25605D22B972AD002452E2 /* CameraEventEmitter.m */; };
 		A7D02BC9243627E100C0EDE6 /* RNCustomWhiteBalanceSettings.m in Sources */ = {isa = PBXBuildFile; fileRef = A7D02BC8243627E100C0EDE6 /* RNCustomWhiteBalanceSettings.m */; };
+		A88CDBFF2707504D000A72F5 /* RNCameraFocusSquare.m in Sources */ = {isa = PBXBuildFile; fileRef = A88CDBFE2707504D000A72F5 /* RNCameraFocusSquare.m */; };
+		AB25605E22B972AD002452E2 /* CameraEventEmitter.m in Sources */ = {isa = PBXBuildFile; fileRef = AB25605D22B972AD002452E2 /* CameraEventEmitter.m */; };
 		F8393BEC21469C0000AB1995 /* RNSensorOrientationChecker.m in Sources */ = {isa = PBXBuildFile; fileRef = F8393BEB21469C0000AB1995 /* RNSensorOrientationChecker.m */; };
 /* End PBXBuildFile section */
 
@@ -38,7 +39,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		4107012F1ACB723B00C6AA39 /* libRCTCamera.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRCTCamera.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0314E39B1B661A0C0092D183 /* CameraFocusSquare.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CameraFocusSquare.h; sourceTree = "<group>"; };
 		0314E39C1B661A460092D183 /* CameraFocusSquare.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CameraFocusSquare.m; sourceTree = "<group>"; };
 		135441392487FF390024C19F /* BarcodeDetectorManagerMlkit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BarcodeDetectorManagerMlkit.h; sourceTree = "<group>"; };
@@ -65,11 +65,13 @@
 		71C7FFD52013C824006EB75A /* RNFileSystem.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RNFileSystem.m; sourceTree = "<group>"; };
 		9FE592B11CA3CBF500788287 /* RCTSensorOrientationChecker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RCTSensorOrientationChecker.h; sourceTree = "<group>"; };
 		9FE592B21CA3CBF500788287 /* RCTSensorOrientationChecker.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RCTSensorOrientationChecker.m; sourceTree = "<group>"; };
+		A7D02BC7243627E100C0EDE6 /* RNCustomWhiteBalanceSettings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RNCustomWhiteBalanceSettings.h; sourceTree = "<group>"; };
+		A7D02BC8243627E100C0EDE6 /* RNCustomWhiteBalanceSettings.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RNCustomWhiteBalanceSettings.m; sourceTree = "<group>"; };
+		A88CDBFD2707504D000A72F5 /* RNCameraFocusSquare.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RNCameraFocusSquare.h; sourceTree = "<group>"; };
+		A88CDBFE2707504D000A72F5 /* RNCameraFocusSquare.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RNCameraFocusSquare.m; sourceTree = "<group>"; };
 		AB25605D22B972AD002452E2 /* CameraEventEmitter.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CameraEventEmitter.m; sourceTree = "<group>"; };
 		AB25605F22B972CE002452E2 /* CameraEventEmitter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CameraEventEmitter.h; sourceTree = "<group>"; };
-		A7D02BC7243627E100C0EDE6 /* RNCustomWhiteBalanceSettings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RNCustomWhiteBalanceSettings.h; sourceTree = "<group>"; };
 		C5627D22245D10A100B761CF /* NSMutableDictionary+ImageMetadata.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSMutableDictionary+ImageMetadata.h"; sourceTree = "<group>"; };
-		A7D02BC8243627E100C0EDE6 /* RNCustomWhiteBalanceSettings.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RNCustomWhiteBalanceSettings.m; sourceTree = "<group>"; };
 		F8393BEA21469C0000AB1995 /* RNSensorOrientationChecker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RNSensorOrientationChecker.h; sourceTree = "<group>"; };
 		F8393BEB21469C0000AB1995 /* RNSensorOrientationChecker.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RNSensorOrientationChecker.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -109,8 +111,6 @@
 		714166152013E19D00EE9FCC /* RCT */ = {
 			isa = PBXGroup;
 			children = (
-				9FE592B11CA3CBF500788287 /* RCTSensorOrientationChecker.h */,
-				9FE592B21CA3CBF500788287 /* RCTSensorOrientationChecker.m */,
 				0314E39C1B661A460092D183 /* CameraFocusSquare.m */,
 				0314E39B1B661A0C0092D183 /* CameraFocusSquare.h */,
 				C5627D22245D10A100B761CF /* NSMutableDictionary+ImageMetadata.h */,
@@ -126,6 +126,8 @@
 		714166162013E1B600EE9FCC /* RN */ = {
 			isa = PBXGroup;
 			children = (
+				A88CDBFD2707504D000A72F5 /* RNCameraFocusSquare.h */,
+				A88CDBFE2707504D000A72F5 /* RNCameraFocusSquare.m */,
 				135441392487FF390024C19F /* BarcodeDetectorManagerMlkit.h */,
 				1354413A2487FF390024C19F /* BarcodeDetectorManagerMlkit.m */,
 				F8393BEA21469C0000AB1995 /* RNSensorOrientationChecker.h */,
@@ -219,6 +221,7 @@
 				71C7FFD02013C7E5006EB75A /* RNCameraUtils.m in Sources */,
 				7162BE682013EAA400FE51FF /* RNCameraManager.m in Sources */,
 				7162BE672013EAA100FE51FF /* RNCamera.m in Sources */,
+				A88CDBFF2707504D000A72F5 /* RNCameraFocusSquare.m in Sources */,
 				9FE592B31CA3CBF500788287 /* RCTSensorOrientationChecker.m in Sources */,
 				2647D6712256BBD5007D2F91 /* FaceDetectorManagerMlkit.m in Sources */,
 				71C7FFD32013C817006EB75A /* RNImageUtils.m in Sources */,
@@ -279,11 +282,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../../React/**",
 					"$(SRCROOT)/../../react-native/React/**",
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LIBRARY_SEARCH_PATHS = "";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -327,11 +330,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../../React/**",
 					"$(SRCROOT)/../../react-native/React/**",
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LIBRARY_SEARCH_PATHS = "";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				OTHER_LDFLAGS = "-ObjC";
