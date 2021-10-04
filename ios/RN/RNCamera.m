@@ -575,7 +575,7 @@ BOOL _sessionInterrupted = NO;
 - (void)updateFocusDepth
 {
     AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
-    if (device == nil || self.autoFocus < 0 || device.focusMode != RNCameraAutoFocusOff || device.position == RNCameraTypeFront) {
+    if (device == nil || self.autoFocus != RNCameraAutoFocusOff || device.focusMode != RNCameraAutoFocusOff || device.position == RNCameraTypeFront) {
         return;
     }
 
