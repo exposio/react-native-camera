@@ -125,6 +125,7 @@ BOOL _sessionInterrupted = NO;
 -(void)handleTouch:(UITapGestureRecognizer*)tapRecognizer isDoubleTap:(BOOL)isDoubleTap{
     if (tapRecognizer.state == UIGestureRecognizerStateRecognized) {
         CGPoint location = [tapRecognizer locationInView:self];
+        CGPoint devicePoint = [self.previewLayer captureDevicePointOfInterestForPoint:location];
         NSDictionary *tapEvent = [NSMutableDictionary dictionaryWithDictionary:@{
             @"isDoubleTap":@(isDoubleTap),
             @"touchOrigin": @{
@@ -132,6 +133,23 @@ BOOL _sessionInterrupted = NO;
                 @"y": @(location.y)
             }
         }];
+        
+        // DEBUG SQUARE
+        if (self.camFocus) {
+            [self.camFocus removeFromSuperview];
+        }
+        self.camFocus = [[RNCameraFocusSquare alloc]initWithFrame:CGRectMake(location.x-40, location.y-40, 80, 80)];
+        [self addSubview:self.camFocus];
+        [self.camFocus setNeedsDisplay];
+        
+        [UIView beginAnimations:nil context:NULL];
+        [UIView setAnimationDuration:1.5];
+        [self.camFocus setAlpha:0.0];
+        [UIView commitAnimations];
+        
+        self.autoFocusPointOfInterest = @{ @"x" : @(devicePoint.x), @"y" : @(devicePoint.y)};
+        [self updateAutoFocusPointOfInterest];
+        
         [self onTouch:tapEvent];
     }
 }
