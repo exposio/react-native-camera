@@ -762,4 +762,22 @@ RCT_EXPORT_METHOD(unlockWhiteBalance:(nonnull NSNumber *)reactTag
         }
     }];
 }
+
+RCT_EXPORT_METHOD(getExposureTargetBiasBoundaries:(nonnull NSNumber *)reactTag
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject) {
+    [self.bridge.uiManager addUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, RNCamera *> *viewRegistry) {
+        RNCamera *view = viewRegistry[reactTag];
+        if (![view isKindOfClass:[RNCamera class]]) {
+            RCTLogError(@"Invalid view returned from registry, expecting RNCamera, got: %@", view);
+        } else {
+            NSDictionary *boundaries = [view getMinMaxExposureTargetBias];
+            if (boundaries != nil) {
+                resolve(boundaries);
+            } else {
+                reject(@"E_GET_BOUNDARIES_FAILED", @"ExposureTargetBias boundaries not found.", nil);
+            }
+        }
+    }];
+}
 @end

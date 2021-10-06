@@ -2209,4 +2209,16 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
     return self.movieFileOutput != nil ? self.movieFileOutput.isRecording : NO;
 }
 
+- (NSDictionary*) getMinMaxExposureTargetBias {
+    AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
+    if (device == nil) {
+        return nil;
+    }
+    
+    return @{
+        @"min": @(device.minExposureTargetBias),
+        @"max": @(device.maxExposureTargetBias)
+    };
+}
+
 @end
