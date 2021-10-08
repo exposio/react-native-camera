@@ -757,10 +757,12 @@ BOOL _sessionInterrupted = NO;
 - (void)updateVideoHDR
 {
     AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
-    [device setAutomaticallyAdjustsVideoHDREnabled:FALSE];
     if(device.activeFormat.isVideoHDRSupported)
     {
-        [device setVideoHDREnabled:FALSE];
+        [self lockDevice:device andApplySettings:^{
+            [device setAutomaticallyAdjustsVideoHDREnabled:FALSE];
+            [device setVideoHDREnabled:FALSE];
+        }];
     }
 }
 
