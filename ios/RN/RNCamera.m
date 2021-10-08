@@ -754,6 +754,18 @@ BOOL _sessionInterrupted = NO;
     }
 }
 
+- (void)updateVideoHDR
+{
+    AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
+    if(device.activeFormat.isVideoHDRSupported)
+    {
+        [self lockDevice:device andApplySettings:^{
+            [device setAutomaticallyAdjustsVideoHDREnabled:FALSE];
+            [device setVideoHDREnabled:FALSE];
+        }];
+    }
+}
+
 - (void)takePictureWithOrientation:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject{
     
     UIInterfaceOrientation orientation = [self.sensorOrientationChecker getDeviceOrientation];
@@ -1490,6 +1502,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
                 [self updateWhiteBalance];
                 [self updateFlashMode];
                 [self updateGlobalToneMapping];
+                [self updateVideoHDR];
             });
 
             [self.previewLayer.connection setVideoOrientation:orientation];
@@ -1543,6 +1556,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
                 [self updateFlashMode];
                 [self updateZoom];
                 [self updateGlobalToneMapping];
+                [self updateVideoHDR];
             }
             else{
                 RCTLog(@"The selected preset [%@] does not work with the current session.", preset);
