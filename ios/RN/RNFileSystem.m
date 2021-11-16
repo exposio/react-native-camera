@@ -36,5 +36,11 @@
     return [array objectAtIndex:0];
 }
 
++ (NSString *)documentDirectoryPath
+{
+    NSArray *array = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    return [array firstObject];
+}
+
 @end
 
