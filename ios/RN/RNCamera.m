@@ -899,12 +899,9 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
             CGImageDestinationFinalize(destination);
             CFRelease(destination);
 
-            NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-            NSString *documentsDirectory = [paths firstObject];
-
             long index = self.sources.count + 1;
 
-            NSString *fullPath = [[documentsDirectory stringByAppendingPathComponent:[[NSString stringWithFormat:@"%ld_9", index] stringByAppendingString:[[NSUUID UUID] UUIDString]]] stringByAppendingPathExtension:@"jpg"];
+            NSString *fullPath = [[[RNFileSystem documentDirectoryPath] stringByAppendingPathComponent:[[NSString stringWithFormat:@"%ld_9", index] stringByAppendingString:[[NSUUID UUID] UUIDString]]] stringByAppendingPathExtension:@"jpg"];
 
             [RNImageUtils writeImage:resizedImageData toPath:fullPath];
             [self.sources addObject:fullPath];
@@ -1137,7 +1134,7 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
             path = options[@"path"];
         }
         else {
-            path = [RNFileSystem generatePathInDirectory:[[RNFileSystem cacheDirectoryPath] stringByAppendingPathComponent:@"Camera"] withExtension:@".mov"];
+            path = [RNFileSystem generatePathInDirectory:[RNFileSystem documentDirectoryPath] withExtension:@".mov"];
         }
 
         if ([options[@"mirrorVideo"] boolValue]) {
