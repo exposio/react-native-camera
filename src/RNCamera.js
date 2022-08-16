@@ -632,6 +632,55 @@ export default class Camera extends React.Component<PropsType, StateType> {
     return await CameraManager.record(options, this._cameraHandle);
   }
 
+  async captureCombined(options?: RecordingOptions) {
+    if (!options || typeof options !== 'object') {
+      options = {};
+    } else if (typeof options.quality === 'string') {
+      options.quality = Camera.Constants.VideoQuality[options.quality];
+    }
+    if (options.orientation) {
+      if (typeof options.orientation !== 'number') {
+        const { orientation } = options;
+        options.orientation = CameraManager.Orientation[orientation];
+        if (__DEV__) {
+          if (typeof options.orientation !== 'number') {
+            // eslint-disable-next-line no-console
+            console.warn(`Orientation '${orientation}' is invalid.`);
+          }
+        }
+      }
+    }
+
+    if (__DEV__) {
+      if (options.videoBitrate && typeof options.videoBitrate !== 'number') {
+        // eslint-disable-next-line no-console
+        console.warn('Video Bitrate should be a positive integer');
+      }
+    }
+
+    const { recordAudioPermissionStatus } = this.state;
+    const { captureAudio } = this.props;
+
+    if (
+      !captureAudio ||
+      recordAudioPermissionStatus !== RecordAudioPermissionStatusEnum.AUTHORIZED
+    ) {
+      options.mute = true;
+    }
+
+    if (__DEV__) {
+      if (
+        (!options.mute || captureAudio) &&
+        recordAudioPermissionStatus !== RecordAudioPermissionStatusEnum.AUTHORIZED
+      ) {
+        // eslint-disable-next-line no-console
+        console.warn('Recording with audio not possible. Permissions are missing.');
+      }
+    }
+
+    return await CameraManager.record(options, this._cameraHandle);
+  }
+
   stopRecording() {
     CameraManager.stopRecording(this._cameraHandle);
   }
