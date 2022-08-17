@@ -705,8 +705,13 @@ export default class Camera extends React.Component<PropsType, StateType> {
       throw 'Camera handle cannot be null';
     }
 
-    await CameraManager.record(videoOptions, this._cameraHandle);
-    return await CameraManager.takePicture(pictureOptions, this._cameraHandle); 
+    let recordSources = await CameraManager.record(videoOptions, this._cameraHandle);
+    let captureSources = await CameraManager.takePicture(pictureOptions, this._cameraHandle);
+
+    return {
+      "photos" : captureSources,
+      "videos" : recordSources
+    }
   }
 
   stopRecording() {
