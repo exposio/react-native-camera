@@ -632,18 +632,18 @@ export default class Camera extends React.Component<PropsType, StateType> {
     return await CameraManager.record(options, this._cameraHandle);
   }
 
-  async captureCombined(options?: RecordingOptions) {
-    if (!options || typeof options !== 'object') {
-      options = {};
-    } else if (typeof options.quality === 'string') {
-      options.quality = Camera.Constants.VideoQuality[options.quality];
+  async captureCombined(videoOptions?: RecordingOptions, pictureOptions?: PictureOptions) {
+    if (!videoOptions || typeof videoOptions !== 'object') {
+      videoOptions = {};
+    } else if (typeof videoOptions.quality === 'string') {
+      videoOptions.quality = Camera.Constants.VideoQuality[videoOptions.quality];
     }
-    if (options.orientation) {
-      if (typeof options.orientation !== 'number') {
-        const { orientation } = options;
-        options.orientation = CameraManager.Orientation[orientation];
+    if (videoOptions.orientation) {
+      if (typeof videoOptions.orientation !== 'number') {
+        const { orientation } = videoOptions;
+        videoOptions.orientation = CameraManager.Orientation[orientation];
         if (__DEV__) {
-          if (typeof options.orientation !== 'number') {
+          if (typeof videoOptions.orientation !== 'number') {
             // eslint-disable-next-line no-console
             console.warn(`Orientation '${orientation}' is invalid.`);
           }
@@ -652,7 +652,7 @@ export default class Camera extends React.Component<PropsType, StateType> {
     }
 
     if (__DEV__) {
-      if (options.videoBitrate && typeof options.videoBitrate !== 'number') {
+      if (videoOptions.videoBitrate && typeof videoOptions.videoBitrate !== 'number') {
         // eslint-disable-next-line no-console
         console.warn('Video Bitrate should be a positive integer');
       }
@@ -665,20 +665,48 @@ export default class Camera extends React.Component<PropsType, StateType> {
       !captureAudio ||
       recordAudioPermissionStatus !== RecordAudioPermissionStatusEnum.AUTHORIZED
     ) {
-      options.mute = true;
+      videoOptions.mute = true;
     }
 
     if (__DEV__) {
       if (
-        (!options.mute || captureAudio) &&
+        (!videoOptions.mute || captureAudio) &&
         recordAudioPermissionStatus !== RecordAudioPermissionStatusEnum.AUTHORIZED
       ) {
         // eslint-disable-next-line no-console
         console.warn('Recording with audio not possible. Permissions are missing.');
       }
     }
+    if (!pictureOptions) {
+      pictureOptions = {};
+    }
+    if (!pictureOptions.quality) {
+      pictureOptions.quality = 1;
+    }
 
-    return await CameraManager.record(options, this._cameraHandle);
+    if (pictureOptions.orientation) {
+      if (typeof pictureOptions.orientation !== 'number') {
+        const { orientation } = pictureOptions;
+        pictureOptions.orientation = CameraManager.Orientation[orientation];
+        if (__DEV__) {
+          if (typeof pictureOptions.orientation !== 'number') {
+            // eslint-disable-next-line no-console
+            console.warn(`Orientation '${orientation}' is invalid.`);
+          }
+        }
+      }
+    }
+
+    if (pictureOptions.pauseAfterCapture === undefined) {
+      pictureOptions.pauseAfterCapture = false;
+    }
+
+    if (!this._cameraHandle) {
+      throw 'Camera handle cannot be null';
+    }
+
+    await CameraManager.record(videoOptions, this._cameraHandle);
+    return await CameraManager.takePicture(pictureOptions, this._cameraHandle); 
   }
 
   stopRecording() {

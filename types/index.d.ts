@@ -501,7 +501,7 @@ export class RNCamera extends Component<RNCameraProps & ViewProperties> {
 
   takePictureAsync(options?: TakePictureOptions): Promise<TakePictureResponse>;
   recordAsync(options?: RecordOptions): Promise<RecordResponse>;
-  captureCombined(options?: TakePictureOptions, options?: RecordOptions): Promise<CombinedResponse>;
+  captureCombined(videoOptions?: RecordOptions, pictureOptions?: TakePictureOptions): Promise<CombinedResponse>;
   refreshAuthorizationStatus(): Promise<void>;
   stopRecording(): void;
   pausePreview(): void;
