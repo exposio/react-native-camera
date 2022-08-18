@@ -474,6 +474,16 @@ export interface RecordResponse {
   codec: VideoCodec[keyof VideoCodec];
 }
 
+export interface CombinedResponse {
+  /** Path to the video saved on your app's cache directory. */
+  uri: string;
+  videoOrientation: number;
+  deviceOrientation: number;
+  isRecordingInterrupted: boolean;
+  /** iOS only */
+  codec: VideoCodec[keyof VideoCodec];
+}
+
 export interface HardwareCamera {
   /** (iOS only) e.g: 'AVCaptureDeviceTypeBuiltInWideAngleCamera', 'AVCaptureDeviceTypeBuiltInUltraWideCamera' */
   deviceType?: string;
@@ -491,6 +501,7 @@ export class RNCamera extends Component<RNCameraProps & ViewProperties> {
 
   takePictureAsync(options?: TakePictureOptions): Promise<TakePictureResponse>;
   recordAsync(options?: RecordOptions): Promise<RecordResponse>;
+  captureCombined(videoOptions?: RecordOptions, pictureOptions?: TakePictureOptions): Promise<CombinedResponse>;
   refreshAuthorizationStatus(): Promise<void>;
   stopRecording(): void;
   pausePreview(): void;
