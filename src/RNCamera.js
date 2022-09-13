@@ -715,7 +715,7 @@ export default class Camera extends React.Component<PropsType, StateType> {
 
     return {
       "photos" : captureSources,
-      "videos" : recordSources
+      "video" : recordSources
     }
   }
 
