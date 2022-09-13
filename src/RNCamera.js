@@ -232,6 +232,7 @@ type RecordingOptions = {
   mute?: boolean,
   path?: string,
   videoBitrate?: number,
+  motionEnabled?: boolean,
 };
 
 type EventCallbackArgumentsType = {
@@ -705,12 +706,16 @@ export default class Camera extends React.Component<PropsType, StateType> {
       throw 'Camera handle cannot be null';
     }
 
-    let recordSources = await CameraManager.record(videoOptions, this._cameraHandle);
+    let recordSource = {};
+    if (videoOptions.motionEnabled) {
+      recordSource = await CameraManager.record(videoOptions, this._cameraHandle); 
+    }
+    
     let captureSources = await CameraManager.takePicture(pictureOptions, this._cameraHandle);
 
     return {
       "photos" : captureSources,
-      "videos" : recordSources
+      "video" : recordSource
     }
   }
 
