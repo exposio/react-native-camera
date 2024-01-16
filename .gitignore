@@ -34,8 +34,23 @@ local.properties
 node_modules/
 npm-debug.log
 
+# yarn
+yarn-error.log
+
 # BUCK
 buck-out/
 \.buckd/
 android/app/libs
 android/keystores/debug.keystore
+
+# VSCODE
+package-json.lock
+
+# vscode
+.vscode
+examples/mlkit/android/app/google-services.json
+examples/mlkit/ios/Pods
+examples/mlkit/ios/mlkit/GoogleService-Info.plist
+
+!debug.keystore
+/ios/Pods/

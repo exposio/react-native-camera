@@ -10,13 +10,40 @@ Pod::Spec.new do |s|
   s.license        = package['license']
   s.author         = package['author']
   s.homepage       = package['homepage']
-  s.source         = { :git => 'https://github.com/lwansbrough/react-native-camera', :tag => s.version }
+  s.source         = { :git => 'https://github.com/react-native-community/react-native-camera', :tag => "v#{s.version}" }
 
   s.requires_arc   = true
-  s.platform       = :ios, '8.0'
+  s.platform       = :ios, '9.0'
+
+  s.subspec "RCT" do |ss|
+    ss.source_files = "ios/RCT/**/*.{h,m}"
+  end
+
+  s.subspec "RN" do |ss|
+    ss.source_files = "ios/RN/**/*.{h,m}"
+  end
+
+  s.subspec "TextDetector" do |ss|
+    ss.dependency 'react-native-camera/RN'
+    ss.dependency 'react-native-camera/RCT'
+    ss.dependency 'GoogleMLKit/TextRecognition'
+  end
+
+  s.subspec "FaceDetectorMLKit" do |ss|
+    ss.dependency 'react-native-camera/RN'
+    ss.dependency 'react-native-camera/RCT'
+    ss.dependency 'GoogleMLKit/FaceDetection'
+  end
+  
+  s.subspec "BarcodeDetectorMLKit" do |ss|
+    ss.dependency 'react-native-camera/RN'
+    ss.dependency 'react-native-camera/RCT'
+    ss.dependency 'GoogleMLKit/BarcodeScanning'
+  end
+
+  s.default_subspecs = "RN", "RCT"
 
   s.preserve_paths = 'LICENSE', 'README.md', 'package.json', 'index.js'
-  s.source_files   = 'ios/*.{h,m}'
 
-  s.dependency 'React'
+  s.dependency 'React-Core'
 end
