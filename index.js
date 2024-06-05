@@ -255,6 +255,16 @@ export default class Camera extends Component {
     return CameraManager.unlockAutoExposure({type: props.type});
   }
 
+  getISO() {
+    const props = convertNativeProps(this.props);
+    return CameraManager.getISO({type: props.type});
+  }
+
+  getExposure() {
+    const props = convertNativeProps(this.props);
+    return CameraManager.getExposure({type: props.type});
+  }
+
   setExposure(exposure) {
     const props = convertNativeProps(this.props);
     return CameraManager.setExposure({type: props.type}, exposure);
