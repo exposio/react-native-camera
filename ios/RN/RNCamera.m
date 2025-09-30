@@ -813,6 +813,7 @@ BOOL _sessionInterrupted = NO;
     self.captureResolve = resolve;
     self.captureReject = reject;
     self.exposures = [options objectForKey:@"exposures"];
+    self.raw = options[@"raw"] ? [options[@"raw"] boolValue] : NO;
     [self.sources removeAllObjects];
 
     NSMutableArray *exposuresBrackets = [NSMutableArray array];
@@ -855,8 +856,27 @@ BOOL _sessionInterrupted = NO;
 
             [bracketedStillImageSettings addObject:[AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:[bias doubleValue]]];
         }
-
-        AVCapturePhotoBracketSettings *settings = [AVCapturePhotoBracketSettings photoBracketSettingsWithRawPixelFormatType:0 processedFormat:nil bracketedSettings:bracketedStillImageSettings];
+        
+        OSType rawPixelFormatType = 0;
+        NSDictionary *processedFormat = nil;
+        if (self.raw) {
+            // Use RAW format only (if not available, will fallback to processed JPG)
+            NSArray<NSNumber *> *rawPixelFormats = self.photoOutput.availableRawPhotoPixelFormatTypes;
+            if (rawPixelFormats.count > 0) {
+                rawPixelFormatType = rawPixelFormats[0].unsignedIntValue;
+            } else {
+                NSLog(@"RAW capture is not supported on this device.");
+            }
+        } else {
+            // Use processed JPG format only
+            processedFormat = @{ AVVideoCodecKey : AVVideoCodecTypeJPEG };
+        }
+        
+        // Create settings
+        AVCapturePhotoBracketSettings *settings = [AVCapturePhotoBracketSettings
+            photoBracketSettingsWithRawPixelFormatType:rawPixelFormatType
+            processedFormat:processedFormat
+            bracketedSettings:bracketedStillImageSettings];
         settings.lensStabilizationEnabled = self.photoOutput.isLensStabilizationDuringBracketedCaptureSupported;
         settings.highResolutionPhotoEnabled = true;
         
@@ -876,45 +896,49 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
                 error:(NSError *)error
 {
     if (photo) {
+        // Retrieve image data
         NSData *imageData = [photo fileDataRepresentation];
+        NSString *photoType = [photo isRawPhoto] ? @"RAW (DNG)" : @"JPEG";
 
-        // Create image source
+        // Create source
         CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)imageData, NULL);
 
-        //get all the metadata in the image
+        // Extract metadata and remove TIFF dictionary
         NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
-        if (imageMetadata) {
-            // resize cgimage
-            CGImageRef resizedCGImage = [RNImageUtils downsampleImage:photo.CGImageRepresentation maxSize:2108];
-            // Erase stupid TIFF stuff
-            [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
+        [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
 
-            // Create destination thing
-            NSMutableData *resizedImageData = [NSMutableData data];
-            CGImageDestinationRef destination = CGImageDestinationCreateWithData((CFMutableDataRef)resizedImageData, CGImageSourceGetType(source), 1, NULL);
-            CFRelease(source);
-            // add the image to the destination, reattaching metadata
-            CGImageDestinationAddImage(destination, resizedCGImage, (CFDictionaryRef) imageMetadata);
-            // And write
-            CGImageDestinationFinalize(destination);
-            CFRelease(destination);
+        // Get CGImage (lazy loading)
+        CGImageRef cgImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
+        CFRelease(source);
 
-            long index = self.sources.count + 1;
+        // Resize CGImage (will take time because CGImage is lazy loaded)
+        NSDate *startTime = [NSDate date];
+        CGImageRef resizedCGImage = [RNImageUtils downsampleImage:cgImage maxSize:2108];
+        CGImageRelease(cgImage);
+        NSLog(@"Resize CGImage - Time elapsed: %f seconds", [[NSDate date] timeIntervalSinceDate:startTime]);
 
-            NSString *fullPath = [[[RNFileSystem documentDirectoryPath] stringByAppendingPathComponent:[[NSString stringWithFormat:@"%ld_9", index] stringByAppendingString:[[NSUUID UUID] UUIDString]]] stringByAppendingPathExtension:@"jpg"];
+        // Create JPEG destination with reattached metadata
+        NSMutableData *resizedImageData = [NSMutableData data];
+        CGImageDestinationRef destination = CGImageDestinationCreateWithData((CFMutableDataRef)resizedImageData, kUTTypeJPEG, 1, NULL);
+        CGImageDestinationAddImage(destination, resizedCGImage, (CFDictionaryRef) imageMetadata);
+        CGImageDestinationFinalize(destination);
+        CFRelease(destination);
+        CGImageRelease(resizedCGImage);
 
-            [RNImageUtils writeImage:resizedImageData toPath:fullPath];
-            [self.sources addObject:fullPath];
+        // Save to file
+        long index = self.sources.count + 1;
+        NSString *fullPath = [[[RNFileSystem documentDirectoryPath] stringByAppendingPathComponent:[[NSString stringWithFormat:@"%ld_9", index] stringByAppendingString:[[NSUUID UUID] UUIDString]]] stringByAppendingPathExtension:@"jpg"];
+        [RNImageUtils writeImage:resizedImageData toPath:fullPath];
+        [self.sources addObject:fullPath];
+        NSLog(@"Saving image to %@", fullPath);
 
-            NSLog(@"Path %@", fullPath);
-            NSLog(@"NB captures: %lu", (unsigned long)self.sources.count);
-            if (self.sources.count == self.exposures.count) {
-                if (self.captureResolve) {
-                    self.captureResolve(self.sources);
-                    self.captureResolve = nil;
-                }
+        // Resolve if all exposures are captured
+        NSLog(@"NB captures: %lu", (unsigned long)self.sources.count);
+        if (self.sources.count == self.exposures.count) {
+            if (self.captureResolve) {
+                self.captureResolve(self.sources);
+                self.captureResolve = nil;
             }
-            CGImageRelease(resizedCGImage);
         }
 
         return;
