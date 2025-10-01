@@ -832,6 +832,10 @@ BOOL _sessionInterrupted = NO;
         }
     }
 
+    // RAW capture only allows videoZoomFactor = 1.0 (corresponds to zoom = 0 in RNCamera) so we need to crop after capture
+    self.cropZoom =  options[@"cropZoom"] ? [options[@"cropZoom"] floatValue] : 0.0; 
+
+
     NSMutableArray *exposuresBrackets = [NSMutableArray array];
 
     NSUInteger itemsRemaining = [self.exposures count];
@@ -912,7 +916,20 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
         CGImageRef cgImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
         CFRelease(source);
 
-        // Resize CGImage (will take time because CGImage is lazy loaded)
+        // Crop image if cropZoom is set, e.g. RAW capture
+        if (self.cropZoom) {
+            CGSize originalSize = CGSizeMake(CGImageGetWidth(cgImage), CGImageGetHeight(cgImage));
+            CGRect cropRect = CGRectMake((originalSize.width - originalSize.width / self.cropZoom) / 2,
+                                         (originalSize.height - originalSize.height / self.cropZoom) / 2,
+                                         originalSize.width / self.cropZoom,
+                                         originalSize.height / self.cropZoom);
+            CGImageRef croppedCGImage = CGImageCreateWithImageInRect(cgImage, cropRect);
+            CGImageRelease(cgImage);
+            cgImage = croppedCGImage;
+            NSLog(@"Crop image to %@", NSStringFromCGRect(cropRect));
+        }
+
+        // Resize CGImage (might take time because CGImage is lazy loaded)
         NSDate *startTime = [NSDate date];
         CGImageRef resizedCGImage = [RNImageUtils downsampleImage:cgImage maxSize:2108];
         CGImageRelease(cgImage);

@@ -67,6 +67,7 @@
 @property (nonatomic, strong) NSMutableArray *sources;
 @property (nonatomic, strong) NSMutableArray *exposures;
 @property (nonatomic, strong) NSMutableArray *exposureBrackets;
+@property (nonatomic, assign) CGFloat cropZoom;
 
 - (id)initWithBridge:(RCTBridge *)bridge;
 - (void)updateType;
