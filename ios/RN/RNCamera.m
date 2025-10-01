@@ -45,6 +45,9 @@
 @property (nonatomic, assign) BOOL isExposedOnPoint;
 @property (nonatomic, assign) BOOL invertImageData;
 
+@property (nonatomic, assign) OSType rawPixelFormatType;
+@property (nonatomic, strong) NSDictionary *processedFormat;
+
 @end
 
 @implementation RNCamera
@@ -813,8 +816,21 @@ BOOL _sessionInterrupted = NO;
     self.captureResolve = resolve;
     self.captureReject = reject;
     self.exposures = [options objectForKey:@"exposures"];
-    self.raw = options[@"raw"] ? [options[@"raw"] boolValue] : NO;
     [self.sources removeAllObjects];
+
+    // RAW/JPEG capture settings
+    BOOL raw = options[@"raw"] ? [options[@"raw"] boolValue] : NO;
+    self.rawPixelFormatType = 0;
+    self.processedFormat = nil; // will default to JPEG if rawPixelFormatType is 0
+    if (raw) {
+        // Use RAW format only, if available
+        NSArray<NSNumber *> *rawPixelFormats = self.photoOutput.availableRawPhotoPixelFormatTypes;
+        if (rawPixelFormats.count > 0) {
+            self.rawPixelFormatType = rawPixelFormats[0].unsignedIntValue;
+        } else {
+            NSLog(@"RAW capture is not supported on this device. Fallback to processed JPG format.");
+        }
+    }
 
     NSMutableArray *exposuresBrackets = [NSMutableArray array];
 
@@ -857,25 +873,10 @@ BOOL _sessionInterrupted = NO;
             [bracketedStillImageSettings addObject:[AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:[bias doubleValue]]];
         }
         
-        OSType rawPixelFormatType = 0;
-        NSDictionary *processedFormat = nil;
-        if (self.raw) {
-            // Use RAW format only (if not available, will fallback to processed JPG)
-            NSArray<NSNumber *> *rawPixelFormats = self.photoOutput.availableRawPhotoPixelFormatTypes;
-            if (rawPixelFormats.count > 0) {
-                rawPixelFormatType = rawPixelFormats[0].unsignedIntValue;
-            } else {
-                NSLog(@"RAW capture is not supported on this device.");
-            }
-        } else {
-            // Use processed JPG format only
-            processedFormat = @{ AVVideoCodecKey : AVVideoCodecTypeJPEG };
-        }
-        
         // Create settings
         AVCapturePhotoBracketSettings *settings = [AVCapturePhotoBracketSettings
-            photoBracketSettingsWithRawPixelFormatType:rawPixelFormatType
-            processedFormat:processedFormat
+            photoBracketSettingsWithRawPixelFormatType:self.rawPixelFormatType
+            processedFormat:self.processedFormat
             bracketedSettings:bracketedStillImageSettings];
         settings.lensStabilizationEnabled = self.photoOutput.isLensStabilizationDuringBracketedCaptureSupported;
         settings.highResolutionPhotoEnabled = true;

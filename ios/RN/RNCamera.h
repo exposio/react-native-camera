@@ -67,7 +67,6 @@
 @property (nonatomic, strong) NSMutableArray *sources;
 @property (nonatomic, strong) NSMutableArray *exposures;
 @property (nonatomic, strong) NSMutableArray *exposureBrackets;
-@property (nonatomic, assign) BOOL raw;
 
 - (id)initWithBridge:(RCTBridge *)bridge;
 - (void)updateType;
