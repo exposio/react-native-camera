@@ -904,6 +904,14 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
         // Retrieve image data
         NSData *imageData = [photo fileDataRepresentation];
         NSString *photoType = [photo isRawPhoto] ? @"RAW (DNG)" : @"JPEG";
+        if (!imageData) {
+            if (self.captureReject) {
+                NSString *errorMessage = [NSString stringWithFormat:@"Failed to obtain image data for photo: %@", photo.description];
+                self.captureReject(@"E_IMAGE_CAPTURE_FAILED", errorMessage, nil);
+                self.captureReject = nil;
+            }
+            return;
+        }
 
         // Create source
         CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)imageData, NULL);
