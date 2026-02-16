@@ -92,6 +92,8 @@ BOOL _sessionInterrupted = NO;
         self.isFocusedOnPoint = NO;
         self.isExposedOnPoint = NO;
         self.invertImageData = true;
+        self.lowLightDetector = [LowLightDetector new];
+        self.lastLowLightState = NO;
         _recordRequested = NO;
         _sessionInterrupted = NO;
 
@@ -1312,6 +1314,8 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
         }
         [self setupOrDisableBarcodeScanner];
 
+        [self setupOrDisableLowLightDetector];
+
         _sessionInterrupted = NO;
         [self.session startRunning];
         [self onReady:nil];
@@ -1354,6 +1358,8 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
         self.videoCaptureDeviceInput = nil;
         self.audioCaptureDeviceInput = nil;
         self.movieFileOutput = nil;
+        [self.lowLightDetector reset];
+        self.lastLowLightState = NO;
     });
 }
 
@@ -2187,12 +2193,54 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
     self.videoDataOutput = nil;
 }
 
+# pragma mark - LowLightDetector
+
+- (void)setupOrDisableLowLightDetector
+{
+    if (self.onLowLightChange) {
+        if (!self.videoDataOutput) {
+            self.videoDataOutput = [[AVCaptureVideoDataOutput alloc] init];
+            if (![self.session canAddOutput:self.videoDataOutput]) {
+                NSLog(@"Failed to setup video data output for low light detection");
+                self.videoDataOutput = nil;
+                return;
+            }
+            NSDictionary *rgbOutputSettings = [NSDictionary
+                dictionaryWithObject:[NSNumber numberWithInt:kCMPixelFormat_32BGRA]
+                                forKey:(id)kCVPixelBufferPixelFormatTypeKey];
+            [self.videoDataOutput setVideoSettings:rgbOutputSettings];
+            [self.videoDataOutput setAlwaysDiscardsLateVideoFrames:YES];
+            [self.videoDataOutput setSampleBufferDelegate:self queue:self.sessionQueue];
+            [self.session addOutput:self.videoDataOutput];
+        }
+    }
+}
+
 # pragma mark - mlkit
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
     didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
            fromConnection:(AVCaptureConnection *)connection
 {
+    if (self.onLowLightChange) {
+        if (!self.lowLightDetector) {
+            self.lowLightDetector = [LowLightDetector new];
+        }
+
+        [self.lowLightDetector processFrame:sampleBuffer];
+        BOOL currentLowLightState = self.lowLightDetector.isLowLight;
+
+        if (currentLowLightState != self.lastLowLightState) {
+            self.lastLowLightState = currentLowLightState;
+            [self onLowLightChange:@{
+                @"isLowLight": @(currentLowLightState),
+                @"isMoving": @(self.lowLightDetector.imageIsMoving),
+                @"brightness": @(self.lowLightDetector.previewBrightness),
+                @"exposureRef": @(self.lowLightDetector.previewExposureRef)
+            }];
+        }
+    }
+
     if (![self.textDetector isRealDetector] && ![self.faceDetector isRealDetector] && ![self.barcodeDetector isRealDetector]) {
         NSLog(@"failing real check");
         return;
@@ -2263,6 +2311,13 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
                 [self onBarcodesDetected:eventBarcode];
             }];
         }
+    }
+}
+
+- (void)onLowLightChange:(NSDictionary *)event
+{
+    if (_onLowLightChange && _session) {
+        _onLowLightChange(event);
     }
 }
 

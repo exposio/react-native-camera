@@ -28,6 +28,7 @@ RCT_EXPORT_VIEW_PROPERTY(onTextRecognized, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onSubjectAreaChanged, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(videoStabilizationMode, NSInteger);
 RCT_EXPORT_VIEW_PROPERTY(onTouch, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onLowLightChange, RCTDirectEventBlock);
 
 
 + (BOOL)requiresMainQueueSetup
@@ -96,9 +97,24 @@ RCT_EXPORT_VIEW_PROPERTY(onTouch, RCTDirectEventBlock);
     };
 }
 
-- (NSArray<NSString *> *)supportedEvents
-{
-    return @[@"onCameraReady", @"onAudioInterrupted", @"onAudioConnected", @"onMountError", @"onBarCodeRead", @"onFacesDetected", @"onPictureTaken", @"onPictureSaved", @"onRecordingStart", @"onRecordingEnd", @"onTextRecognized", @"onGoogleVisionBarcodesDetected", @"onSubjectAreaChanged",@"onTouch"];
+- (NSArray<NSString *> *)supportedEvents {
+    return @[
+        @"onCameraReady",
+        @"onAudioInterrupted",
+        @"onAudioConnected",
+        @"onMountError",
+        @"onBarCodeRead",
+        @"onFacesDetected",
+        @"onGoogleVisionBarcodesDetected",
+        @"onPictureTaken",
+        @"onPictureSaved",
+        @"onRecordingStart",
+        @"onRecordingEnd",
+        @"onTextRecognized",
+        @"onSubjectAreaChanged",
+        @"onTouch",
+        @"onLowLightChange"
+    ];
 }
 
 + (NSDictionary *)validCodecTypes

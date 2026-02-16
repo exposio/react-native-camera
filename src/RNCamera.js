@@ -288,6 +288,7 @@ type PropsType = typeof View.props & {
   videoStabilizationMode?: number | string,
   pictureSize?: string,
   rectOfInterest: Rect,
+  onLowLightChange?: (data: { isLowLight: boolean, isMoving: boolean, brightness: number, exposureRef: number }) => void,
 };
 
 type StateType = {
@@ -451,6 +452,7 @@ export default class Camera extends React.Component<PropsType, StateType> {
     mirrorVideo: PropTypes.bool,
     rectOfInterest: PropTypes.any,
     defaultVideoQuality: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    onLowLightChange: PropTypes.func,
   };
 
   static defaultProps: Object = {
@@ -841,6 +843,12 @@ export default class Camera extends React.Component<PropsType, StateType> {
     }
   };
 
+  _onLowLightChange = ({ nativeEvent }: EventCallbackArgumentsType) => {
+    if (this.props.onLowLightChange) {
+      this.props.onLowLightChange(nativeEvent);
+    }
+  };
+
   _setReference = (ref: ?Object) => {
     if (ref) {
       this._cameraRef = ref;
@@ -975,6 +983,7 @@ export default class Camera extends React.Component<PropsType, StateType> {
             onTextRecognized={this._onObjectDetected(this.props.onTextRecognized)}
             onPictureSaved={this._onPictureSaved}
             onSubjectAreaChanged={this._onSubjectAreaChanged}
+            onLowLightChange={this._onLowLightChange}
           />
           {this.renderChildren()}
         </View>

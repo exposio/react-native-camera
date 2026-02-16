@@ -2,10 +2,12 @@
 #import <React/RCTBridge.h>
 #import <React/RCTBridgeModule.h>
 #import <UIKit/UIKit.h>
+#import <React/RCTComponent.h>
 
 #import "FaceDetectorManagerMlkit.h"
 #import "BarcodeDetectorManagerMlkit.h"
 #import "TextDetectorManager.h"
+#import "LowLightDetector.h"
 
 @class RNCamera;
 @class RNCustomWhiteBalanceSettings;
@@ -68,6 +70,11 @@
 @property (nonatomic, strong) NSMutableArray *exposures;
 @property (nonatomic, strong) NSMutableArray *exposureBrackets;
 @property (nonatomic, assign) CGFloat cropZoom;
+
+@property (nonatomic, copy) RCTDirectEventBlock onLowLightChange;
+@property (nonatomic, strong) LowLightDetector *lowLightDetector;
+@property (nonatomic, assign) BOOL lastLowLightState;
+
 
 - (id)initWithBridge:(RCTBridge *)bridge;
 - (void)updateType;
