@@ -66,30 +66,27 @@ static NSInteger const FRAME_INTERVAL = 30;
     return [[metadata objectForKey:(NSString *)kCGImagePropertyExifDictionary] mutableCopy];
 }
 
-/// Computes the average brightness of the Y-plane (luminance) from a camera sample buffer.
+/// Computes the average brightness of the given frame by sampling pixels.
+/// @param sampleBuffer The CMSampleBufferRef from camera output.
 /// @param pixelSpacing The step size for pixel sampling (e.g., 10 for every 10th pixel).
 /// @return The average brightness value (0-255).
 - (int)computeImageBrightness:(CMSampleBufferRef)sampleBuffer pixelSpacing:(int)pixelSpacing {
     CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
     CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
-    
+
     size_t bytesPerRow = CVPixelBufferGetBytesPerRowOfPlane(imageBuffer, 0);
     size_t height = CVPixelBufferGetHeightOfPlane(imageBuffer, 0);
     UInt8 *pixels = (UInt8 *)CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 0);
     unsigned long length = bytesPerRow * height;
-    long count = (length + pixelSpacing - 1) / pixelSpacing;
-    
-    float *floatBuf = (float *)malloc(count * sizeof(float));
-    for (long i = 0, idx = 0; idx < length; i++, idx += pixelSpacing) {
-        floatBuf[i] = (float)pixels[idx];
+    int luminance = 0;
+    int n = 0;
+    for (int i = 0; i < length; i += pixelSpacing) {
+        luminance += pixels[i];
+        n++;
     }
-    
-    float mean = 0;
-    vDSP_meanv(floatBuf, 1, &mean, count);
-    free(floatBuf);
-    
+
     CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
-    return (int)roundf(mean);
+    return (int)roundf((float)luminance / (float)n);
 }
 
 /// Resets the detector's state and clears all buffers.
