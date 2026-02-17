@@ -3,19 +3,16 @@
 #import <Accelerate/Accelerate.h>
 #include <math.h>
 
-// static float const THRESHOLD_MOVEMENT_DEFAULT = 5.0; // Removed
 static float const THRESHOLD_EXPOSURE = 0.05;
-static NSInteger const SAMPLE_SIZE = 10;
+static NSInteger const FRAME_INTERVAL = 30;
 
 @implementation LowLightDetector
 
-/// Initializes the LowLightDetector with default values.
-/// Sets all properties to their initial states and prepares the pixel buffer array.
 - (instancetype)init {
     self = [super init];
     if (self) {
         self.isLowLight = NO;
-        self.listOfPixelBuffer = [NSMutableArray array];
+        self.frameCount = 0;
         self.previewBrightness = 0;
         self.previewExposure = 0.0;
         self.previewExposureRef = 0.0;
@@ -24,47 +21,32 @@ static NSInteger const SAMPLE_SIZE = 10;
     return self;
 }
 
-/// Processes a camera frame sample buffer to detect low light and movement.
-/// Buffers frames, computes brightness and exposure, and updates low light state.
-/// @param sampleBuffer The CMSampleBufferRef from the camera output.
+/// Processes a camera frame.
+/// @param sampleBuffer The CMSampleBufferRef from camera output.
 - (void)processFrame:(CMSampleBufferRef)sampleBuffer {
-    NSData *imageData = [self nsDataFromSampleBuffer:sampleBuffer];
-    if ([self.listOfPixelBuffer count] != 0 && [imageData length] != [[self.listOfPixelBuffer objectAtIndex:0] length]) {
-        [self.listOfPixelBuffer removeAllObjects];
+    self.frameCount++;
+    
+    if (self.frameCount < FRAME_INTERVAL) {
+        return;
     }
-
-    [self.listOfPixelBuffer addObject:imageData];
-
-    if (self.listOfPixelBuffer.count >= SAMPLE_SIZE) {
-        NSDictionary *exifMetadata = [self getExifMetadata:sampleBuffer];
-
-        self.previewBrightness = [self computeImageBrightness:10];
-        self.previewExposure = [[exifMetadata objectForKey:(NSString *)kCGImagePropertyExifExposureTime] floatValue];
-        self.previewISO = [NSArray arrayWithArray:[exifMetadata objectForKey:(NSString *)kCGImagePropertyExifISOSpeedRatings]];
-
-        int coefficient = 1;
-        if (self.previewBrightness >= (int)255 * 0.25) {
-            coefficient = 0;
-        }
-        if (self.previewBrightness > (int)255 * 0.75) {
-            coefficient = -1;
-        }
-        self.previewExposureRef = pow(2, log((double)[[self.previewISO objectAtIndex:0] intValue] / 100) / log((double)2) + coefficient) * self.previewExposure;
-
-        BOOL isLowLight = [self isTooDark:self.previewExposureRef];
-        if (isLowLight) {
-            if (self.isLowLight == NO) {
-                self.isLowLight = isLowLight;
-            }
-        } else {
-            if (self.isLowLight) {
-                self.isLowLight = isLowLight;
-                // Event emission handled by manager
-            }
-        }
-
-        [self.listOfPixelBuffer removeAllObjects];
+    self.frameCount = 0;
+    
+    self.previewBrightness = [self computeImageBrightness:sampleBuffer pixelSpacing:10];
+    
+    NSDictionary *exifMetadata = [self getExifMetadata:sampleBuffer];
+    self.previewExposure = [[exifMetadata objectForKey:(NSString *)kCGImagePropertyExifExposureTime] floatValue];
+    self.previewISO = [NSArray arrayWithArray:[exifMetadata objectForKey:(NSString *)kCGImagePropertyExifISOSpeedRatings]];
+    
+    int coefficient = 1;
+    if (self.previewBrightness >= (int)(255 * 0.25)) {
+        coefficient = 0;
     }
+    if (self.previewBrightness > (int)(255 * 0.75)) {
+        coefficient = -1;
+    }
+    self.previewExposureRef = pow(2, log((double)[[self.previewISO objectAtIndex:0] intValue] / 100) / log((double)2) + coefficient) * self.previewExposure;
+    
+    self.isLowLight = [self isTooDark:self.previewExposureRef];
 }
 
 /// Checks if the exposure reference indicates low light conditions.
@@ -84,44 +66,37 @@ static NSInteger const SAMPLE_SIZE = 10;
     return [[metadata objectForKey:(NSString *)kCGImagePropertyExifDictionary] mutableCopy];
 }
 
-/// Computes the average brightness of the latest frame using vDSP for efficiency.
+/// Computes the average brightness of the Y-plane (luminance) from a camera sample buffer.
 /// @param pixelSpacing The step size for pixel sampling (e.g., 10 for every 10th pixel).
 /// @return The average brightness value (0-255).
-- (int)computeImageBrightness:(int)pixelSpacing {
-    NSData *data = [self.listOfPixelBuffer objectAtIndex:(SAMPLE_SIZE - 1)];
-    UInt8 *pixels = (UInt8 *)[data bytes];
-    unsigned long length = [data length];
+- (int)computeImageBrightness:(CMSampleBufferRef)sampleBuffer pixelSpacing:(int)pixelSpacing {
+    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+    CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
+    
+    size_t bytesPerRow = CVPixelBufferGetBytesPerRowOfPlane(imageBuffer, 0);
+    size_t height = CVPixelBufferGetHeightOfPlane(imageBuffer, 0);
+    UInt8 *pixels = (UInt8 *)CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 0);
+    unsigned long length = bytesPerRow * height;
     long count = (length + pixelSpacing - 1) / pixelSpacing;
-
+    
     float *floatBuf = (float *)malloc(count * sizeof(float));
     for (long i = 0, idx = 0; idx < length; i++, idx += pixelSpacing) {
         floatBuf[i] = (float)pixels[idx];
     }
+    
     float mean = 0;
     vDSP_meanv(floatBuf, 1, &mean, count);
     free(floatBuf);
+    
+    CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
     return (int)roundf(mean);
-}
-
-/// Converts a CMSampleBufferRef to NSData containing the Y-plane pixel data.
-/// @param sampleBuffer The sample buffer from camera output.
-/// @return NSData with grayscale pixel data.
-- (NSData *)nsDataFromSampleBuffer:(CMSampleBufferRef)sampleBuffer {
-    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-    CVPixelBufferLockBaseAddress(imageBuffer, 0);
-    size_t bytesPerRow0 = CVPixelBufferGetBytesPerRowOfPlane(imageBuffer, 0);
-    size_t height0 = CVPixelBufferGetHeightOfPlane(imageBuffer, 0);
-    void *srcBuff0 = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 0);
-    NSData *yData = [[NSData alloc] initWithBytes:srcBuff0 length:bytesPerRow0 * height0];
-    CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
-    return yData;
 }
 
 /// Resets the detector's state and clears all buffers.
 /// Useful for restarting low light detection.
 - (void)reset {
     self.isLowLight = NO;
-    [self.listOfPixelBuffer removeAllObjects];
+    self.frameCount = 0;
     self.previewBrightness = 0;
     self.previewExposure = 0.0;
     self.previewExposureRef = 0.0;

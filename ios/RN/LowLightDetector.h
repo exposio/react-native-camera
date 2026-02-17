@@ -8,8 +8,8 @@
 /// Indicates whether the current scene is in low light conditions.
 @property (nonatomic, assign) BOOL isLowLight;
 
-/// Array holding pixel data from recent camera frames for analysis.
-@property (nonatomic, strong) NSMutableArray *listOfPixelBuffer;
+/// Frame counter for skipping frames between checks.
+@property (nonatomic, assign) NSInteger frameCount;
 
 /// The current brightness value of the preview frame (0-255).
 @property (nonatomic, assign) int previewBrightness;
@@ -45,11 +45,6 @@
 /// @param pixelSpacing Step size for sampling.
 /// @return Average brightness (0-255).
 - (int)computeImageBrightness:(int)pixelSpacing;
-
-/// Converts sample buffer to pixel data.
-/// @param sampleBuffer The sample buffer.
-/// @return NSData with Y-plane pixel data.
-- (NSData *)nsDataFromSampleBuffer:(CMSampleBufferRef)sampleBuffer;
 
 /// Resets the detector's state and buffers.
 - (void)reset;
