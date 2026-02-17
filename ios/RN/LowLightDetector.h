@@ -8,14 +8,8 @@
 /// Indicates whether the current scene is in low light conditions.
 @property (nonatomic, assign) BOOL isLowLight;
 
-/// Indicates whether the image is moving based on frame differences.
-@property (nonatomic, assign) BOOL imageIsMoving;
-
 /// Array holding pixel data from recent camera frames for analysis.
 @property (nonatomic, strong) NSMutableArray *listOfPixelBuffer;
-
-/// The last computed movement difference value.
-@property (nonatomic, assign) float lastDiff;
 
 /// The current brightness value of the preview frame (0-255).
 @property (nonatomic, assign) int previewBrightness;
@@ -42,11 +36,6 @@
 /// @return YES if too dark, NO otherwise.
 - (BOOL)isTooDark:(double)exposure_ref;
 
-/// Checks if the movement difference indicates motion.
-/// @param difference The movement difference value.
-/// @return YES if moving, NO otherwise.
-- (BOOL)isMoving:(float)difference;
-
 /// Extracts EXIF metadata from a sample buffer.
 /// @param sampleBuffer The sample buffer.
 /// @return Dictionary containing EXIF data.
@@ -56,11 +45,6 @@
 /// @param pixelSpacing Step size for sampling.
 /// @return Average brightness (0-255).
 - (int)computeImageBrightness:(int)pixelSpacing;
-
-/// Computes movement by calculating standard deviation across frames.
-/// @param pixelSpacing Step size for sampling.
-/// @return Average standard deviation.
-- (float)computeImageMovement:(int)pixelSpacing;
 
 /// Converts sample buffer to pixel data.
 /// @param sampleBuffer The sample buffer.

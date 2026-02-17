@@ -288,7 +288,7 @@ type PropsType = typeof View.props & {
   videoStabilizationMode?: number | string,
   pictureSize?: string,
   rectOfInterest: Rect,
-  onLowLightChange?: (data: { isLowLight: boolean, isMoving: boolean, brightness: number, exposureRef: number }) => void,
+  onLowLightChange?: (data: { isLowLight: boolean, brightness: number, exposureRef: number }) => void,
 };
 
 type StateType = {

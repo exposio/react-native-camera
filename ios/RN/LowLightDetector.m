@@ -3,9 +3,9 @@
 #import <Accelerate/Accelerate.h>
 #include <math.h>
 
-static float const THRESHOLD_MOVEMENT_DEFAULT = 5.0;
+// static float const THRESHOLD_MOVEMENT_DEFAULT = 5.0; // Removed
 static float const THRESHOLD_EXPOSURE = 0.05;
-static NSInteger const SAMPLE_SIZE = 30;
+static NSInteger const SAMPLE_SIZE = 10;
 
 @implementation LowLightDetector
 
@@ -15,9 +15,7 @@ static NSInteger const SAMPLE_SIZE = 30;
     self = [super init];
     if (self) {
         self.isLowLight = NO;
-        self.imageIsMoving = NO;
         self.listOfPixelBuffer = [NSMutableArray array];
-        self.lastDiff = 0.0;
         self.previewBrightness = 0;
         self.previewExposure = 0.0;
         self.previewExposureRef = 0.0;
@@ -31,7 +29,6 @@ static NSInteger const SAMPLE_SIZE = 30;
 /// @param sampleBuffer The CMSampleBufferRef from the camera output.
 - (void)processFrame:(CMSampleBufferRef)sampleBuffer {
     NSData *imageData = [self nsDataFromSampleBuffer:sampleBuffer];
-    NSLog(@"Processing frame with data length: %lu", (unsigned long)[imageData length]);
     if ([self.listOfPixelBuffer count] != 0 && [imageData length] != [[self.listOfPixelBuffer objectAtIndex:0] length]) {
         [self.listOfPixelBuffer removeAllObjects];
     }
@@ -42,10 +39,8 @@ static NSInteger const SAMPLE_SIZE = 30;
         NSDictionary *exifMetadata = [self getExifMetadata:sampleBuffer];
 
         self.previewBrightness = [self computeImageBrightness:10];
-        NSLog(@"Computed brightness: %d", self.previewBrightness);
         self.previewExposure = [[exifMetadata objectForKey:(NSString *)kCGImagePropertyExifExposureTime] floatValue];
         self.previewISO = [NSArray arrayWithArray:[exifMetadata objectForKey:(NSString *)kCGImagePropertyExifISOSpeedRatings]];
-        NSLog(@"Exposure: %f, ISO: %@", self.previewExposure, self.previewISO);
 
         int coefficient = 1;
         if (self.previewBrightness >= (int)255 * 0.25) {
@@ -55,26 +50,17 @@ static NSInteger const SAMPLE_SIZE = 30;
             coefficient = -1;
         }
         self.previewExposureRef = pow(2, log((double)[[self.previewISO objectAtIndex:0] intValue] / 100) / log((double)2) + coefficient) * self.previewExposure;
-        NSLog(@"Calculated exposure reference: %f", self.previewExposureRef);
 
         BOOL isLowLight = [self isTooDark:self.previewExposureRef];
-        NSLog(@"Is low light: %@", isLowLight ? @"YES" : @"NO");
         if (isLowLight) {
             if (self.isLowLight == NO) {
                 self.isLowLight = isLowLight;
-                NSLog(@"Low light condition started");
             }
-            self.lastDiff = [self computeImageMovement:10];
-            self.imageIsMoving = [self isMoving:self.lastDiff];
-            NSLog(@"Movement diff: %f, Is moving: %@", self.lastDiff, self.imageIsMoving ? @"YES" : @"NO");
         } else {
             if (self.isLowLight) {
                 self.isLowLight = isLowLight;
-                NSLog(@"Low light condition ended");
                 // Event emission handled by manager
             }
-            self.lastDiff = 0.0;
-            self.imageIsMoving = NO;
         }
 
         [self.listOfPixelBuffer removeAllObjects];
@@ -88,13 +74,6 @@ static NSInteger const SAMPLE_SIZE = 30;
     return (exposure_ref > THRESHOLD_EXPOSURE);
 }
 
-/// Checks if the movement difference indicates image motion.
-/// @param difference The computed movement difference.
-/// @return YES if moving, NO otherwise.
-- (BOOL)isMoving:(float)difference {
-    return (difference > THRESHOLD_MOVEMENT_DEFAULT);
-}
-
 /// Extracts EXIF metadata from a camera sample buffer.
 /// @param sampleBuffer The CMSampleBufferRef containing metadata.
 /// @return A dictionary with EXIF data.
@@ -105,42 +84,23 @@ static NSInteger const SAMPLE_SIZE = 30;
     return [[metadata objectForKey:(NSString *)kCGImagePropertyExifDictionary] mutableCopy];
 }
 
-/// Computes the average brightness of the latest frame by sampling pixels.
+/// Computes the average brightness of the latest frame using vDSP for efficiency.
 /// @param pixelSpacing The step size for pixel sampling (e.g., 10 for every 10th pixel).
 /// @return The average brightness value (0-255).
 - (int)computeImageBrightness:(int)pixelSpacing {
     NSData *data = [self.listOfPixelBuffer objectAtIndex:(SAMPLE_SIZE - 1)];
     UInt8 *pixels = (UInt8 *)[data bytes];
     unsigned long length = [data length];
-    int luminance = 0;
-    int n = 0;
-    for (int i = 0; i < length; i += pixelSpacing) {
-        luminance += pixels[i];
-        n++;
-    }
-    return (int)roundf(luminance / n);
-}
+    long count = (length + pixelSpacing - 1) / pixelSpacing;
 
-/// Computes the movement in the image by calculating standard deviation across buffered frames.
-/// @param pixelSpacing The step size for pixel sampling.
-/// @return The average standard deviation indicating movement level.
-- (float)computeImageMovement:(int)pixelSpacing {
-    NSMutableArray *frames = [[NSMutableArray alloc] initWithArray:self.listOfPixelBuffer copyItems:YES];
-    int numberOfFrames = (int)frames.count;
-    long imageSize = [[frames objectAtIndex:0] length];
-    float standardDeviation = 0.0;
-    UInt8 *pixels;
-    for (int i = 0; i < imageSize; i += pixelSpacing) {
-        NSMutableArray *row = [[NSMutableArray alloc] init];
-        for (int j = 0; j < numberOfFrames; j++) {
-            pixels = (UInt8 *)[[frames objectAtIndex:j] bytes];
-            [row addObject:@(pixels[i])];
-        }
-        NSExpression *expression = [NSExpression expressionForFunction:@"stddev:" arguments:@[[NSExpression expressionForConstantValue:row]]];
-        NSNumber *stdDev = [expression expressionValueWithObject:nil context:nil];
-        standardDeviation += [stdDev floatValue];
+    float *floatBuf = (float *)malloc(count * sizeof(float));
+    for (long i = 0, idx = 0; idx < length; i++, idx += pixelSpacing) {
+        floatBuf[i] = (float)pixels[idx];
     }
-    return (float)standardDeviation / (imageSize / pixelSpacing);
+    float mean = 0;
+    vDSP_meanv(floatBuf, 1, &mean, count);
+    free(floatBuf);
+    return (int)roundf(mean);
 }
 
 /// Converts a CMSampleBufferRef to NSData containing the Y-plane pixel data.
@@ -161,9 +121,7 @@ static NSInteger const SAMPLE_SIZE = 30;
 /// Useful for restarting low light detection.
 - (void)reset {
     self.isLowLight = NO;
-    self.imageIsMoving = NO;
     [self.listOfPixelBuffer removeAllObjects];
-    self.lastDiff = 0.0;
     self.previewBrightness = 0;
     self.previewExposure = 0.0;
     self.previewExposureRef = 0.0;

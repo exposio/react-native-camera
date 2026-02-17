@@ -2234,7 +2234,6 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
             self.lastLowLightState = currentLowLightState;
             [self onLowLightChange:@{
                 @"isLowLight": @(currentLowLightState),
-                @"isMoving": @(self.lowLightDetector.imageIsMoving),
                 @"brightness": @(self.lowLightDetector.previewBrightness),
                 @"exposureRef": @(self.lowLightDetector.previewExposureRef)
             }];
