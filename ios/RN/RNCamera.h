@@ -70,6 +70,8 @@
 @property (nonatomic, strong) NSMutableArray *exposures;
 @property (nonatomic, strong) NSMutableArray *exposureBrackets;
 @property (nonatomic, assign) CGFloat cropZoom;
+@property (nonatomic, assign) NSUInteger capturedJpegCount;
+@property (nonatomic, assign) NSUInteger capturedRawCount;
 
 @property (nonatomic, copy) RCTDirectEventBlock onLowLightChange;
 @property (nonatomic, strong) LowLightDetector *lowLightDetector;
