@@ -382,6 +382,10 @@ RCT_REMAP_METHOD(takePicture,
 {
     [self.bridge.uiManager addUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, RNCamera *> *viewRegistry) {
         RNCamera *view = viewRegistry[reactTag];
+        if (!view) {
+            reject(@"E_CAMERA_UNAVAILABLE", @"Camera view is not available", nil);
+            return;
+        }
         if (![view isKindOfClass:[RNCamera class]]) {
             RCTLogError(@"Invalid view returned from registry, expecting RNCamera, got: %@", view);
         } else {
@@ -466,6 +470,9 @@ RCT_EXPORT_METHOD(resumePreview:(nonnull NSNumber *)reactTag)
 #endif
     [self.bridge.uiManager addUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, RNCamera *> *viewRegistry) {
         RNCamera *view = viewRegistry[reactTag];
+        if (!view) {
+            return;
+        }
         if (![view isKindOfClass:[RNCamera class]]) {
             RCTLogError(@"Invalid view returned from registry, expecting RNCamera, got: %@", view);
         } else {
@@ -481,6 +488,9 @@ RCT_EXPORT_METHOD(pausePreview:(nonnull NSNumber *)reactTag)
 #endif
     [self.bridge.uiManager addUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, RNCamera *> *viewRegistry) {
         RNCamera *view = viewRegistry[reactTag];
+        if (!view) {
+            return;
+        }
         if (![view isKindOfClass:[RNCamera class]]) {
             RCTLogError(@"Invalid view returned from registry, expecting RNCamera, got: %@", view);
         } else {
