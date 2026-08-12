@@ -1048,9 +1048,23 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
         if (rawFilter.isMoireReductionSupported)          rawFilter.moireReductionAmount = 0;
         rawFilter.orientation = 1; // orientation will be applied in the metadata
 
-        image = [self downsampleImage:[self cropForZoom:rawFilter.outputImage] toLong:2108];
+        // Downscale during decode instead of resampling afterwards: fastest (fewer pixels
+        // decoded) and noise-safe (Apple scales inside the RAW pipeline, in linear light,
+        // as part of the demosaic/denoise — no Lanczos/bicubic touches the grain).
+        // extent here is the native size (a cheap, non-rendering read). Fold in cropZoom so
+        // that after cropForZoom: the output lands on 2108.
+        CGRect nativeExtent = rawFilter.outputImage.extent;
+        CGFloat nativeLong = MAX(nativeExtent.size.width, nativeExtent.size.height);
+        CGFloat targetLong = 2108.0 * (self.cropZoom > 0 ? self.cropZoom : 1.0);
+        if (nativeLong > targetLong) rawFilter.scaleFactor = targetLong / nativeLong;
+        NSLog(@"CIRAWFilter: nativeLong=%.0f scaleFactor=%.4f", nativeLong, rawFilter.scaleFactor);
+
+        image = [self cropForZoom:rawFilter.outputImage];
     } else {
-        // Non-RAW capture (older devices, or iOS < 15): decode the processed frame directly.
+        // Non-RAW capture (older devices, or iOS < 15): CIRAWFilter/scaleFactor isn't available,
+        // so crop and downsample the processed frame here instead. cropZoom still applies — the
+        // caller sets it whenever it asked for RAW, and it zeroed the zoom to get it, whether or
+        // not the device turned out to support RAW.
         image = [self downsampleImage:[self cropForZoom:[CIImage imageWithData:imageData]]
                                toLong:2108];
     }
