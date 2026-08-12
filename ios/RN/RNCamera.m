@@ -2352,7 +2352,6 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
     }
 
     if (![self.textDetector isRealDetector] && ![self.faceDetector isRealDetector] && ![self.barcodeDetector isRealDetector]) {
-        NSLog(@"failing real check");
         return;
     }
 
