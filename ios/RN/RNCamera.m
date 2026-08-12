@@ -7,6 +7,9 @@
 #import <React/RCTUtils.h>
 #import <React/UIView+React.h>
 #import <MobileCoreServices/MobileCoreServices.h>
+#import <CoreImage/CoreImage.h>
+#import <CoreImage/CIFilterBuiltins.h>
+#import <ImageIO/ImageIO.h>
 #import "RNSensorOrientationChecker.h"
 #import "RNCustomWhiteBalanceSettings.h"
 
@@ -47,6 +50,7 @@
 
 @property (nonatomic, assign) OSType rawPixelFormatType;
 @property (nonatomic, strong) NSDictionary *processedFormat;
+@property (nonatomic, strong) CIContext *ciContext;
 
 @end
 
@@ -893,6 +897,105 @@ BOOL _sessionInterrupted = NO;
     }
 }
 
+- (CIImage *)cropForZoom:(CIImage *)image
+{
+    if (!image || self.cropZoom <= 0) return image;
+    CGRect e = image.extent;
+    CGFloat cw = floor(e.size.width / self.cropZoom);
+    CGFloat ch = floor(e.size.height / self.cropZoom);
+    CGRect crop = CGRectMake(floor(e.origin.x + (e.size.width - cw) / 2),
+                             floor(e.origin.y + (e.size.height - ch) / 2),
+                             cw, ch);
+    return [image imageByCroppingToRect:crop];
+}
+
+// Downsample a CIImage (Lanczos) so its long edge is at most maxLong; no-op if already smaller.
+// Used by the non-RAW path — RAW downscales during decode via CIRAWFilter.scaleFactor.
+- (CIImage *)downsampleImage:(CIImage *)image toLong:(CGFloat)maxLong
+{
+    if (!image) return nil;
+    CGRect extent = image.extent;
+    CGFloat longEdge = MAX(extent.size.width, extent.size.height);
+    if (longEdge <= maxLong) return image;
+
+    CGFloat scale = maxLong / longEdge;
+    CIFilter<CILanczosScaleTransform> *scaler = [CIFilter lanczosScaleTransformFilter];
+    scaler.inputImage = [image imageByClampingToExtent]; // clamp: avoid the white-border fringe
+    scaler.scale = scale;
+    CIImage *scaled = scaler.outputImage;
+    if (!scaled) return image;
+
+    // Crop the infinite (post-clamp) result back to the finite target rect. Lanczos scales about
+    // the coordinate-space origin, so a non-zero extent origin (e.g. from cropForZoom:) scales too.
+    return [scaled imageByCroppingToRect:CGRectMake(round(extent.origin.x * scale),
+                                                    round(extent.origin.y * scale),
+                                                    round(extent.size.width * scale),
+                                                    round(extent.size.height * scale))];
+}
+
+// Encode a CGImageRef to JPEG with the given metadata. Caller owns the returned NSData.
+// Does not release cgImage.
+- (NSData *)jpegDataFromCGImage:(CGImageRef)cgImage withMetadata:(NSDictionary *)metadata
+{
+    if (!cgImage) return nil;
+    NSMutableData *jpegData = [NSMutableData data];
+    CGImageDestinationRef dest = CGImageDestinationCreateWithData(
+        (CFMutableDataRef)jpegData, kUTTypeJPEG, 1, NULL);
+    if (!dest) return nil;
+    CGImageDestinationAddImage(dest, cgImage, (CFDictionaryRef)metadata);
+    BOOL ok = CGImageDestinationFinalize(dest);
+    CFRelease(dest);
+    if (!ok) NSLog(@"jpegDataFromCGImage: CGImageDestinationFinalize failed");
+    return ok ? jpegData : nil;
+}
+
+// Returns a unique output path for the image at the given 1-based logical index.
+- (NSString *)capturePathForIndex:(NSUInteger)index extension:(NSString *)ext
+{
+    NSString *name = [[NSString stringWithFormat:@"%lu_9", (unsigned long)index]
+                      stringByAppendingString:[[NSUUID UUID] UUIDString]];
+    return [[[RNFileSystem documentDirectoryPath]
+             stringByAppendingPathComponent:name]
+            stringByAppendingPathExtension:ext];
+}
+
+// Appends path to self.sources and writes the file. Returns NO on nil data or write failure.
+- (BOOL)saveSource:(NSData *)data toPath:(NSString *)path
+{
+    if (!data) return NO;
+    NSString *written = [RNImageUtils writeImage:data toPath:path];
+    if (!written) {
+        NSLog(@"saveSource: failed to write to %@", path);
+        return NO;
+    }
+    [self.sources addObject:path];
+    return YES;
+}
+
+// GPU-backed context reused across captures; Core Image needs one to render a CIImage.
+- (CIContext *)ciContext
+{
+    if (!_ciContext) {
+        _ciContext = [CIContext contextWithOptions:@{kCIContextUseSoftwareRenderer: @NO}];
+    }
+    return _ciContext;
+}
+
+// Renders to CGImage, encodes to JPEG with metadata, and saves to path. Returns NO on any failure.
+- (BOOL)encodeCIImage:(CIImage *)image
+         withMetadata:(NSDictionary *)metadata
+               toPath:(NSString *)path
+{
+    CGImageRef cgImage = [self.ciContext createCGImage:image fromRect:image.extent];
+    NSData *data = [self jpegDataFromCGImage:cgImage withMetadata:metadata];
+    CGImageRelease(cgImage);
+    if (!data) {
+        NSLog(@"encodeCIImage: failed to produce JPEG data for %@", path);
+        return NO;
+    }
+    return [self saveSource:data toPath:path];
+}
+
 - (void)captureOutput:(AVCapturePhotoOutput *)output didCapturePhotoForResolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings {
     NSLog(@"bracket: didCapturePhotoForResolvedSettings");
     [self captureBracket];
@@ -902,81 +1005,51 @@ BOOL _sessionInterrupted = NO;
 didFinishProcessingPhoto:(AVCapturePhoto *)photo
                 error:(NSError *)error
 {
-    if (photo) {
-        // Retrieve image data
-        NSData *imageData = [photo fileDataRepresentation];
-        NSString *photoType = [photo isRawPhoto] ? @"RAW (DNG)" : @"JPEG";
-        if (!imageData) {
-            if (self.captureReject) {
-                NSString *errorMessage = [NSString stringWithFormat:@"Failed to obtain image data for photo: %@", photo.description];
-                self.captureReject(@"E_IMAGE_CAPTURE_FAILED", errorMessage, nil);
-                self.captureReject = nil;
-            }
-            return;
+    // photo is nonnull per the delegate contract, so error is the only failure signal.
+    if (error) {
+        if (self.captureReject) {
+            self.captureReject(@"E_IMAGE_CAPTURE_FAILED", error.localizedDescription, nil);
+            self.captureReject = nil;
         }
-
-        // Create source
-        CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)imageData, NULL);
-
-        // Extract metadata and remove TIFF dictionary
-        NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL)) mutableCopy];
-        [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
-
-        // Get CGImage (lazy loading)
-        CGImageRef cgImage = CGImageSourceCreateImageAtIndex(source, 0, NULL);
-        CFRelease(source);
-
-        // Crop image if cropZoom is set, e.g. RAW capture
-        if (self.cropZoom) {
-            CGSize originalSize = CGSizeMake(CGImageGetWidth(cgImage), CGImageGetHeight(cgImage));
-            CGRect cropRect = CGRectMake((originalSize.width - originalSize.width / self.cropZoom) / 2,
-                                         (originalSize.height - originalSize.height / self.cropZoom) / 2,
-                                         originalSize.width / self.cropZoom,
-                                         originalSize.height / self.cropZoom);
-            CGImageRef croppedCGImage = CGImageCreateWithImageInRect(cgImage, cropRect);
-            CGImageRelease(cgImage);
-            cgImage = croppedCGImage;
-            NSLog(@"Crop image to %@", NSStringFromCGRect(cropRect));
-        }
-
-        // Resize CGImage (might take time because CGImage is lazy loaded)
-        NSDate *startTime = [NSDate date];
-        CGImageRef resizedCGImage = [RNImageUtils downsampleImage:cgImage maxSize:2108];
-        CGImageRelease(cgImage);
-        NSLog(@"Resize CGImage - Time elapsed: %f seconds", [[NSDate date] timeIntervalSinceDate:startTime]);
-
-        // Create JPEG destination with reattached metadata
-        NSMutableData *resizedImageData = [NSMutableData data];
-        CGImageDestinationRef destination = CGImageDestinationCreateWithData((CFMutableDataRef)resizedImageData, kUTTypeJPEG, 1, NULL);
-        CGImageDestinationAddImage(destination, resizedCGImage, (CFDictionaryRef) imageMetadata);
-        CGImageDestinationFinalize(destination);
-        CFRelease(destination);
-        CGImageRelease(resizedCGImage);
-
-        // Save to file
-        long index = self.sources.count + 1;
-        NSString *fullPath = [[[RNFileSystem documentDirectoryPath] stringByAppendingPathComponent:[[NSString stringWithFormat:@"%ld_9", index] stringByAppendingString:[[NSUUID UUID] UUIDString]]] stringByAppendingPathExtension:@"jpg"];
-        [RNImageUtils writeImage:resizedImageData toPath:fullPath];
-        [self.sources addObject:fullPath];
-        NSLog(@"Saving image to %@", fullPath);
-
-        // Resolve if all exposures are captured
-        NSLog(@"NB captures: %lu", (unsigned long)self.sources.count);
-        if (self.sources.count == self.exposures.count) {
-            if (self.captureResolve) {
-                self.captureResolve(self.sources);
-                self.captureResolve = nil;
-            }
-        }
-
         return;
     }
 
-    if (self.captureReject) {
-        self.captureReject(RCTErrorUnspecified, nil, RCTErrorWithMessage(error.description));
-        self.captureReject = nil;
+    NSData *imageData = [photo fileDataRepresentation];
+    BOOL isRaw = [photo isRawPhoto];
+    NSLog(@"captureOutput: isRawPhoto=%d, dataLength=%lu", isRaw, (unsigned long)imageData.length);
+
+    // EXIF extraction
+    CGImageSourceRef metaSource = CGImageSourceCreateWithData((CFDataRef)imageData, NULL);
+    NSMutableDictionary *imageMetadata = nil;
+    if (metaSource) {
+        imageMetadata = [(NSDictionary *)CFBridgingRelease(
+            CGImageSourceCopyPropertiesAtIndex(metaSource, 0, NULL)) mutableCopy];
+        [imageMetadata removeObjectForKey:(NSString *)kCGImagePropertyTIFFDictionary];
+        CFRelease(metaSource);
     }
-    
+
+    CIImage *image = [self downsampleImage:[self cropForZoom:[CIImage imageWithData:imageData]]
+                                    toLong:2108];
+
+    BOOL ok = [self encodeCIImage:image
+                     withMetadata:imageMetadata
+                           toPath:[self capturePathForIndex:self.sources.count+1 extension:@"jpg"]];
+    if (!ok) {
+        if (self.captureReject) {
+            self.captureReject(@"E_IMAGE_CAPTURE_FAILED", @"Failed to encode/save image", nil);
+            self.captureReject = nil;
+        }
+        return;
+    }
+
+    // Resolve when all images for all exposures have been saved
+    NSLog(@"NB captures: %lu / %lu", (unsigned long)self.sources.count, (unsigned long)self.exposures.count);
+    if (self.sources.count == self.exposures.count) {
+        if (self.captureResolve) {
+            self.captureResolve(self.sources);
+            self.captureResolve = nil;
+        }
+    }
 }
 
 - (void)recordWithOrientation:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject{
