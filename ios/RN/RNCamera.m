@@ -1028,8 +1028,32 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
         CFRelease(metaSource);
     }
 
-    CIImage *image = [self downsampleImage:[self cropForZoom:[CIImage imageWithData:imageData]]
-                                    toLong:2108];
+    CIImage *image = nil;
+    if (isRaw && @available(iOS 15.0, *)) {
+        CIRAWFilter *rawFilter = [CIRAWFilter filterWithImageData:imageData identifierHint:nil];
+        // Opt into the newest RAW decoder. supportedDecoderVersions is ordered oldest -> newest,
+        // so the last entry is Apple RAW 9 on iOS 27+, and gracefully the newest available
+        // decoder on older OSes. RAW 9's ML demosaic/denoise is the whole reason we're here.
+        // Set this BEFORE reading the isXxxSupported flags — the decoder version determines
+        // which knobs exist (e.g. color NR becomes automatic under RAW 9).
+        CIRAWDecoderVersion newestDecoder = rawFilter.supportedDecoderVersions.lastObject;
+        if (newestDecoder) rawFilter.decoderVersion = newestDecoder;
+        NSLog(@"CIRAWFilter: decoderVersion=%@ supported=%@", newestDecoder, rawFilter.supportedDecoderVersions);
+        if (rawFilter.isLuminanceNoiseReductionSupported) rawFilter.luminanceNoiseReductionAmount = 1.0;
+        if (rawFilter.isColorNoiseReductionSupported)     rawFilter.colorNoiseReductionAmount = 1.0;
+        if (rawFilter.isLocalToneMapSupported)            rawFilter.localToneMapAmount = 0;
+        if (rawFilter.isSharpnessSupported)               rawFilter.sharpnessAmount = 0;
+        if (rawFilter.isContrastSupported)                rawFilter.contrastAmount = 0;
+        if (rawFilter.isDetailSupported)                  rawFilter.detailAmount = 0;
+        if (rawFilter.isMoireReductionSupported)          rawFilter.moireReductionAmount = 0;
+        rawFilter.orientation = 1; // orientation will be applied in the metadata
+
+        image = [self downsampleImage:[self cropForZoom:rawFilter.outputImage] toLong:2108];
+    } else {
+        // Non-RAW capture (older devices, or iOS < 15): decode the processed frame directly.
+        image = [self downsampleImage:[self cropForZoom:[CIImage imageWithData:imageData]]
+                               toLong:2108];
+    }
 
     BOOL ok = [self encodeCIImage:image
                      withMetadata:imageMetadata
