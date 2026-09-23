@@ -1027,14 +1027,24 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
     CIImage *image = nil;
     if (isRaw && @available(iOS 15.0, *)) {
         CIRAWFilter *rawFilter = [CIRAWFilter filterWithImageData:imageData identifierHint:nil];
-        // Opt into the newest RAW decoder. supportedDecoderVersions is ordered oldest -> newest,
-        // so the last entry is Apple RAW 9 on iOS 27+, and gracefully the newest available
-        // decoder on older OSes. RAW 9's ML demosaic/denoise is the whole reason we're here.
+        // The newest decoder up to RAW 8: RAW 9 (iOS 27) is too slow for a bracket decoded at
+        // capture time. supportedDecoderVersions is ordered oldest -> newest.
         // Set this BEFORE reading the isXxxSupported flags — the decoder version determines
-        // which knobs exist (e.g. color NR becomes automatic under RAW 9).
-        CIRAWDecoderVersion newestDecoder = rawFilter.supportedDecoderVersions.lastObject;
-        if (newestDecoder) rawFilter.decoderVersion = newestDecoder;
-        NSLog(@"CIRAWFilter: decoderVersion=%@ supported=%@", newestDecoder, rawFilter.supportedDecoderVersions);
+        // which knobs exist.
+        NSSet<CIRAWDecoderVersion> *allowedDecoders = [NSSet setWithArray:@[
+            CIRAWDecoderVersion8, CIRAWDecoderVersion8DNG,
+            CIRAWDecoderVersion7, CIRAWDecoderVersion7DNG,
+            CIRAWDecoderVersion6, CIRAWDecoderVersion6DNG,
+        ]];
+        CIRAWDecoderVersion decoder = nil;
+        for (CIRAWDecoderVersion version in rawFilter.supportedDecoderVersions.reverseObjectEnumerator) {
+            if ([allowedDecoders containsObject:version]) {
+                decoder = version;
+                break;
+            }
+        }
+        if (decoder) rawFilter.decoderVersion = decoder;
+        NSLog(@"CIRAWFilter: decoderVersion=%@ supported=%@", rawFilter.decoderVersion, rawFilter.supportedDecoderVersions);
         if (rawFilter.isLuminanceNoiseReductionSupported) rawFilter.luminanceNoiseReductionAmount = 1.0;
         if (rawFilter.isColorNoiseReductionSupported)     rawFilter.colorNoiseReductionAmount = 1.0;
         if (rawFilter.isLocalToneMapSupported)            rawFilter.localToneMapAmount = 0;
