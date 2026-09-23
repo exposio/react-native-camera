@@ -52,11 +52,14 @@
 @property (nonatomic, strong) NSDictionary *processedFormat;
 @property (nonatomic, strong) CIContext *ciContext;
 
+@property (nonatomic, strong) UIWindowScene *observedWindowScene;
+
 @end
 
 @implementation RNCamera
 
 static NSDictionary *defaultFaceDetectorOptions = nil;
+static void *RNCameraWindowSceneGeometryContext = &RNCameraWindowSceneGeometryContext;
 
 BOOL _recordRequested = NO;
 BOOL _sessionInterrupted = NO;
@@ -271,11 +274,6 @@ BOOL _sessionInterrupted = NO;
 {
     if(newSuperview != nil){
 
-        [[NSNotificationCenter defaultCenter] addObserver:self
-         selector:@selector(orientationChanged:)
-             name:UIApplicationDidChangeStatusBarOrientationNotification
-           object:nil];
-
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(sessionWasInterrupted:) name:AVCaptureSessionWasInterruptedNotification object:self.session];
 
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(sessionDidStartRunning:) name:AVCaptureSessionDidStartRunningNotification object:self.session];
@@ -296,8 +294,6 @@ BOOL _sessionInterrupted = NO;
         [self startSession];
     }
     else{
-        [[NSNotificationCenter defaultCenter] removeObserver:self name:UIApplicationDidChangeStatusBarOrientationNotification object:nil];
-
         [[NSNotificationCenter defaultCenter] removeObserver:self name:AVCaptureSessionWasInterruptedNotification object:self.session];
 
         [[NSNotificationCenter defaultCenter] removeObserver:self name:AVCaptureSessionDidStartRunningNotification object:self.session];
@@ -1593,17 +1589,6 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
             return;
         }
 
-        // get orientation also in our session queue to prevent
-        // race conditions and also blocking the main thread
-        __block UIInterfaceOrientation interfaceOrientation;
-
-        dispatch_sync(dispatch_get_main_queue(), ^{
-            interfaceOrientation = [[UIApplication sharedApplication] statusBarOrientation];
-        });
-
-        AVCaptureVideoOrientation orientation = [RNCameraUtils videoOrientationForInterfaceOrientation:interfaceOrientation];
-
-
         [self.session beginConfiguration];
 
         NSError *error = nil;
@@ -1669,7 +1654,9 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
                 [self updateVideoHDR];
             });
 
-            [self.previewLayer.connection setVideoOrientation:orientation];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self updatePreviewOrientation];
+            });
             [self _updateMetadataObjectsToRecognize];
         }
         else{
@@ -1827,22 +1814,32 @@ didFinishProcessingPhoto:(AVCapturePhoto *)photo
     });
 }
 
-- (void)orientationChanged:(NSNotification *)notification
+- (void)didMoveToWindow
 {
-    UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
-    [self changePreviewOrientation:orientation];
+    [super didMoveToWindow];
+    [self.observedWindowScene removeObserver:self forKeyPath:@"effectiveGeometry" context:RNCameraWindowSceneGeometryContext];
+    self.observedWindowScene = self.window.windowScene;
+    [self.observedWindowScene addObserver:self forKeyPath:@"effectiveGeometry" options:NSKeyValueObservingOptionInitial context:RNCameraWindowSceneGeometryContext];
 }
 
-- (void)changePreviewOrientation:(UIInterfaceOrientation)orientation
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey, id> *)change context:(void *)context
 {
-    __weak typeof(self) weakSelf = self;
-    AVCaptureVideoOrientation videoOrientation = [RNCameraUtils videoOrientationForInterfaceOrientation:orientation];
-    dispatch_async(dispatch_get_main_queue(), ^{
-        __strong typeof(self) strongSelf = weakSelf;
-        if (strongSelf && strongSelf.previewLayer.connection.isVideoOrientationSupported) {
-            [strongSelf.previewLayer.connection setVideoOrientation:videoOrientation];
-        }
-    });
+    if (context != RNCameraWindowSceneGeometryContext) {
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+        return;
+    }
+    [self updatePreviewOrientation];
+}
+
+// Main thread only. A no-op until the view is in a window and the session has a preview connection;
+// both of those moments call it again.
+- (void)updatePreviewOrientation
+{
+    if (self.observedWindowScene == nil || !self.previewLayer.connection.isVideoOrientationSupported) {
+        return;
+    }
+    UIInterfaceOrientation orientation = self.observedWindowScene.effectiveGeometry.interfaceOrientation;
+    [self.previewLayer.connection setVideoOrientation:[RNCameraUtils videoOrientationForInterfaceOrientation:orientation]];
 }
 -(UIPinchGestureRecognizer*)createUIPinchGestureRecognizer
 {
